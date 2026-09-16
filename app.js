@@ -1591,8 +1591,7 @@ async function startApplication() {
   showView('loadingView');
   setContentLoading();
 
-  try {
-    await beginInitialLoad();
+  const revealLoadedApplication = async () => {
     document.body.classList.remove('booting');
     if (canResume) {
       await selectLesson(resumeLessonId);
@@ -1603,6 +1602,19 @@ async function startApplication() {
     } else {
       showView('loginView');
     }
+  };
+
+  const cached = readCachedContent(state.selectedLessonId);
+  if (cached) {
+    applyContent(cached, state.selectedLessonId, true);
+    await revealLoadedApplication();
+    beginInitialLoad().catch(() => {});
+    return;
+  }
+
+  try {
+    await beginInitialLoad();
+    await revealLoadedApplication();
   } catch (error) {
     $('#loadingMessage').textContent = error.message || 'تعذر تجهيز الدرس. تحقق من الإنترنت.';
     $('#retryButton').hidden = false;
