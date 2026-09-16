@@ -99,6 +99,11 @@ body[data-theme="THEME_05"]:not(.game-active) {
     linear-gradient(135deg,rgba(239,252,241,.9),rgba(252,255,245,.86)),
     url("assets/greenhouse-theme-05.webp") center / cover fixed;
 }
+
+/* تبقى البداية محايدة حتى يصل المظهر المعتمد من لوحة المعلم. */
+body.booting {
+  background: radial-gradient(circle at 50% 34%, #f8fbf9 0, #e9f1ed 48%, #dce8e2 100%) !important;
+}
 body[data-theme="THEME_05"] .greenhouse-panel {
   border-color: rgba(139,214,100,.72); background: rgba(248,255,244,.92);
   box-shadow: 0 24px 66px rgba(5,83,55,.2); backdrop-filter: blur(10px);

@@ -476,12 +476,21 @@ function validateLesson(data, lessonId) {
 
 async function fetchBootstrap(lessonId) {
   const url = `${API_URL}?action=bootstrap&lesson_id=${encodeURIComponent(lessonId)}&_=${Date.now()}`;
-  const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) throw new Error('تعذر الاتصال بقاعدة البيانات.');
-  const payload = await response.json();
-  if (!payload.ok || !payload.data) throw new Error(payload.error || 'لم تصل بيانات الدرس.');
-  validateLesson(payload.data, lessonId);
-  return payload.data;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 20000);
+  try {
+    const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    if (!response.ok) throw new Error('تعذر الاتصال بقاعدة البيانات.');
+    const payload = await response.json();
+    if (!payload.ok || !payload.data) throw new Error(payload.error || 'لم تصل بيانات الدرس.');
+    validateLesson(payload.data, lessonId);
+    return payload.data;
+  } catch (error) {
+    if (error?.name === 'AbortError') throw new Error('استغرق الاتصال وقتًا أطول من المتوقع. حاول مرة أخرى.');
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 function applyContent(data, lessonId, fromCache = false) {
@@ -528,6 +537,7 @@ async function beginInitialLoad() {
     });
 
   state.loadPromise.catch(() => {});
+  return state.loadPromise;
 }
 
 function currentLesson() {
@@ -1558,7 +1568,10 @@ $('#backToLevelsButton').addEventListener('click', () => {
   state.game.roundToken += 1;
   renderReady();
 });
-$('#retryButton').addEventListener('click', () => selectLesson(state.pendingLessonId || state.selectedLessonId));
+$('#retryButton').addEventListener('click', () => {
+  if (state.pendingLessonId) selectLesson(state.pendingLessonId);
+  else startApplication();
+});
 window.addEventListener('resize', () => window.requestAnimationFrame(fitBoardToViewport));
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', () => window.requestAnimationFrame(fitBoardToViewport));
@@ -1567,20 +1580,33 @@ if (window.visualViewport) {
 const restoredPlayer = restorePlayer();
 document.querySelector('input[name="game_mode"]:checked')?.dispatchEvent(new Event('change'));
 const resumeLessonId = restoredPlayer ? resumableLessonId() : '';
-if (resumeLessonId && (!DIRECT_LESSON_ID || DIRECT_LESSON_ID === resumeLessonId)) {
-  state.selectedLessonId = resumeLessonId;
-  showLoading('جارٍ استعادة تقدمك…', resumeLessonId);
-} else {
-  showView('loginView');
-}
-setContentLoading();
-beginInitialLoad();
-if (resumeLessonId && (!DIRECT_LESSON_ID || DIRECT_LESSON_ID === resumeLessonId)) {
-  state.loadPromise?.then(async () => {
-    await selectLesson(resumeLessonId);
-    if (isGroupMode()) {
-      restoreLessonRun(resumeLessonId);
-      renderReady();
+
+async function startApplication() {
+  const canResume = resumeLessonId && (!DIRECT_LESSON_ID || DIRECT_LESSON_ID === resumeLessonId);
+  if (canResume) state.selectedLessonId = resumeLessonId;
+
+  state.pendingLessonId = '';
+  $('#loadingMessage').textContent = canResume ? 'جارٍ استعادة تقدمك…' : 'جارٍ تجهيز المظهر والدرس…';
+  $('#retryButton').hidden = true;
+  showView('loadingView');
+  setContentLoading();
+
+  try {
+    await beginInitialLoad();
+    document.body.classList.remove('booting');
+    if (canResume) {
+      await selectLesson(resumeLessonId);
+      if (isGroupMode()) {
+        restoreLessonRun(resumeLessonId);
+        renderReady();
+      }
+    } else {
+      showView('loginView');
     }
-  }).catch(() => showView('loginView'));
+  } catch (error) {
+    $('#loadingMessage').textContent = error.message || 'تعذر تجهيز الدرس. تحقق من الإنترنت.';
+    $('#retryButton').hidden = false;
+  }
 }
+
+startApplication();
