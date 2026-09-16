@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d6a49">
+  <title>لعبة الذاكرة العلمية</title>
+  <meta name="description" content="لعبة ذاكرة تعليمية في دروس العلوم لطلاب المرحلة الابتدائية">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="THEME_05" data-display-mode="normal">
+  <main class="app-shell">
+    <section id="loadingView" class="screen centered" aria-live="polite">
+      <div class="loader-spinner" aria-hidden="true"></div>
+      <h1>لعبة الذاكرة العلمية</h1>
+      <p id="loadingMessage">جارٍ تجهيز الدرس…</p>
+      <button id="retryButton" class="secondary-button" type="button" hidden>إعادة المحاولة</button>
+    </section>
+
+    <section id="loginView" class="screen" hidden>
+      <div class="greenhouse-panel">
+        <div class="brand-block">
+          <div class="brand-icon" aria-hidden="true">🌿</div>
+          <h1 id="lessonTitle">لعبة الذاكرة العلمية</h1>
+          <p>اكتشف الأزواج المتطابقة وأجب عن أسئلة الدرس الذي تختاره.</p>
+          <div id="contentStatus" class="content-status" aria-live="polite" hidden></div>
+        </div>
+
+        <form id="studentForm" class="student-form">
+          <div class="form-heading">
+            <span>بيانات اللاعب</span>
+            <strong>لنبدأ</strong>
+          </div>
+          <label><span id="playerNameLabel">اسم الطالب</span>
+            <input id="studentName" name="student_name" type="text" maxlength="120" autocomplete="name" placeholder="اكتب اسمك" required>
+          </label>
+          <label>الفصل
+            <input id="className" name="class_name" type="text" maxlength="80" placeholder="مثال: خامس أ" required>
+          </label>
+          <label>المدرسة
+            <input id="schoolName" name="school_name" type="text" maxlength="160" value="مدرسة جرير الابتدائية بالقطيف" required>
+          </label>
+
+          <fieldset id="gameModeField">
+            <legend>اختر طريقة اللعب</legend>
+            <div class="mode-grid">
+              <label class="mode-card">
+                <input type="radio" name="game_mode" value="solo" checked>
+                <span class="mode-icon" aria-hidden="true">👤</span>
+                <strong>لعب فردي</strong>
+                <small>لطالب واحد يلعب ويسجل نتيجته</small>
+              </label>
+              <label class="mode-card">
+                <input type="radio" name="game_mode" value="class">
+                <span class="mode-icon" aria-hidden="true">👥</span>
+                <strong>لعب جماعي</strong>
+                <small>لشخصين أو أكثر على جهاز واحد</small>
+              </label>
+            </div>
+          </fieldset>
+
+          <p id="formMessage" class="form-message" role="alert" aria-live="polite"></p>
+          <button id="continueFormButton" class="primary-button" type="submit">متابعة</button>
+        </form>
+      </div>
+      <footer>إعداد الأستاذ علوي العباس · مدرسة جرير الابتدائية بالقطيف</footer>
+    </section>
+
+    <section id="lessonView" class="screen" hidden>
+      <header class="lesson-header">
+        <div>
+          <p class="eyebrow">الخطوة الثانية</p>
+          <h1>اختر الدرس</h1>
+          <p>اختر الدرس الذي تريد اللعب فيه يا <strong id="lessonPlayerName"></strong>.</p>
+        </div>
+        <button id="backFromLessonsButton" class="secondary-button" type="button">العودة إلى البيانات</button>
+      </header>
+      <div id="lessonGrid" class="lesson-grid" aria-live="polite"></div>
+    </section>
+
+    <section id="groupSetupView" class="screen" hidden>
+      <header class="lesson-header">
+        <div>
+          <p class="eyebrow">إعداد اللعب الجماعي</p>
+          <h1>جهّز الفرق</h1>
+          <p>اختر عدد الفرق واكتب أسماءها قبل بدء المستويات.</p>
+        </div>
+        <button id="backFromGroupButton" class="secondary-button" type="button">رجوع</button>
+      </header>
+      <form id="groupSetupForm" class="group-setup-card">
+        <fieldset>
+          <legend>عدد الفرق</legend>
+          <div class="team-count-options">
+            <label><input type="radio" name="team_count" value="2" checked><span>فريقان</span></label>
+            <label><input type="radio" name="team_count" value="3"><span>3 فرق</span></label>
+            <label><input type="radio" name="team_count" value="4"><span>4 فرق</span></label>
+          </div>
+        </fieldset>
+        <div id="teamNameFields" class="team-name-fields"></div>
+        <label class="steal-setting">
+          <input id="questionStealEnabled" type="checkbox">
+          <span><strong>السماح بأخذ السؤال</strong><small>إذا أخطأ فريق، ينتقل السؤال إلى الفريق التالي.</small></span>
+        </label>
+        <p id="groupSetupMessage" class="form-message" role="alert" aria-live="polite"></p>
+        <button class="primary-button" type="submit">حفظ الفرق والمتابعة</button>
+      </form>
+    </section>
+
+    <section id="readyView" class="screen" hidden>
+      <header class="ready-header">
+        <div>
+          <p class="eyebrow">تم تجهيز اللعبة</p>
+          <h1 id="readyGreeting">مرحبًا <span id="playerName"></span></h1>
+          <p id="playerDetails"></p>
+        </div>
+        <div class="ready-actions">
+          <button id="changeLessonButton" class="secondary-button" type="button">تغيير الدرس</button>
+          <button id="editTeamsButton" class="secondary-button" type="button" hidden>تعديل الفرق</button>
+          <button id="backButton" class="secondary-button" type="button">تعديل البيانات</button>
+        </div>
+      </header>
+
+      <section class="ready-card">
+        <h2 id="readyLessonTitle">الدرس</h2>
+        <span id="modeBadge" class="mode-badge"></span>
+      </section>
+
+      <details id="appearancePanel" class="appearance-panel" hidden>
+        <summary class="appearance-summary-bar">
+          <span class="appearance-preview" aria-hidden="true">
+            <span class="preview-card preview-card-one"></span>
+            <span class="preview-card preview-card-two"></span>
+            <span class="preview-card preview-card-three"></span>
+          </span>
+          <span class="appearance-summary-copy">
+            <span class="eyebrow">مظهر اللعبة</span>
+            <strong id="appearanceTitle">اختر الشكل الذي يعجبك</strong>
+            <span id="appearanceSummary" aria-live="polite"></span>
+          </span>
+          <span class="appearance-change">تغيير <span aria-hidden="true">⌄</span></span>
+        </summary>
+        <div class="appearance-options">
+          <div id="themeChoiceGroup" class="appearance-group" hidden>
+            <h3>التصميم</h3>
+            <div id="themeChoices" class="theme-choices" role="radiogroup" aria-label="اختيار تصميم اللعبة"></div>
+          </div>
+          <div id="displayModeChoiceGroup" class="appearance-group" hidden>
+            <h3>شكل البطاقات</h3>
+            <div id="displayModeChoices" class="display-mode-choices" role="radiogroup" aria-label="اختيار شكل البطاقات"></div>
+          </div>
+        </div>
+      </details>
+
+      <section aria-labelledby="levelsTitle">
+        <div class="section-heading">
+          <div><p class="eyebrow">المستويات</p><h2 id="levelsTitle">مسار التحدي</h2></div>
+          <span id="levelSequenceHint" class="sequence-badge" hidden>المستويات تفتح بالتتابع</span>
+        </div>
+        <div id="completedRunBanner" class="completed-run-banner" hidden>
+          <p><strong>أكملت جميع المستويات 🎉</strong><span>يمكنك إعادة أي مستوى، أو بدء جولة جديدة من المستوى الأول.</span></p>
+          <button id="newRoundButton" class="primary-button" type="button">بدء جولة جديدة</button>
+        </div>
+        <div id="levelsGrid" class="levels-grid"></div>
+      </section>
+
+      <p id="levelMessage" class="level-message" role="alert" aria-live="polite"></p>
+    </section>
+
+    <section id="gameView" class="screen game-screen" hidden>
+      <header class="game-header">
+        <div>
+          <p id="gameLessonName" class="eyebrow"></p>
+          <h1 id="gameLevelName">المستوى</h1>
+        </div>
+        <div class="game-actions">
+          <button id="restartLevelButton" class="secondary-button" type="button">إعادة الخلط</button>
+          <button id="backToLevelsButton" class="secondary-button" type="button">المستويات</button>
+        </div>
+      </header>
+
+      <section class="game-hud" aria-label="حالة اللعب">
+        <div class="hud-item"><span>المحاولات</span><strong id="movesCount">0</strong></div>
+        <div class="hud-item"><span>الأزواج المكتشفة</span><strong class="pair-counter"><span id="matchedCount">0</span> / <span id="pairsCount">0</span></strong></div>
+        <p id="gameMessage" class="game-message" aria-live="polite">اكشف بطاقتين للبحث عن صورة متطابقة.</p>
+        <div id="teamScoreboard" class="team-scoreboard" aria-live="polite" hidden></div>
+      </section>
+
+      <section class="game-stage">
+        <div class="board-surface">
+          <div id="memoryGrid" class="memory-grid" aria-label="لوحة بطاقات الذاكرة"></div>
+        </div>
+        <aside class="greenhouse-side-panel" aria-label="معلومات المستوى">
+          <div class="side-plant-window" aria-hidden="true">
+            <img src="assets/leaf-emblem-theme-05.webp" alt="">
+          </div>
+          <div class="side-panel-copy">
+            <p class="eyebrow">لوحة التقدم</p>
+            <h2 id="sideLessonTitle">المستوى</h2>
+          </div>
+          <div class="side-progress" aria-label="نسبة اكتشاف الأزواج">
+            <span id="sideProgressFill"></span>
+          </div>
+          <div class="side-stat-grid">
+            <div><span>الأزواج</span><strong id="sideMatchedCount">0 / 0</strong></div>
+            <div><span>المحاولات</span><strong id="sideMovesCount">0</strong></div>
+          </div>
+          <div class="side-turn"><span>اللاعب الآن</span><strong id="sideActivePlayer">—</strong></div>
+        </aside>
+      </section>
+
+      <section id="levelCompletePanel" class="level-complete" aria-live="polite" hidden>
+        <span aria-hidden="true">🎉</span>
+        <div><h2 id="levelCompleteTitle">أحسنت! اكتشفت جميع الأزواج</h2><p id="completeSummary"></p></div>
+        <div class="complete-actions">
+          <button id="nextLevelButton" class="primary-button" type="button">المستوى التالي ←</button>
+          <button id="playAgainButton" class="secondary-button" type="button">إعادة المستوى</button>
+        </div>
+      </section>
+    </section>
+
+    <section id="resultView" class="screen result-screen" hidden>
+      <article class="final-result-card">
+        <div class="final-result-mark" aria-hidden="true">🏆</div>
+        <p class="eyebrow">النتيجة النهائية للدرس</p>
+        <h1 id="finalHeading">أحسنت يا <span id="finalPlayerName"></span>!</h1>
+        <p id="finalLessonName" class="final-lesson-name"></p>
+        <div id="finalStars" class="final-stars" aria-label="عدد النجوم"></div>
+        <div id="finalTeamResults" class="final-team-results" hidden></div>
+
+        <div class="final-stats">
+          <div><span>المستويات</span><strong id="finalLevels">0</strong></div>
+          <div><span>الإجابات الصحيحة</span><strong id="finalCorrect">0</strong></div>
+          <div><span>الإجابات الخاطئة</span><strong id="finalWrong">0</strong></div>
+          <div><span>الدرجة</span><strong id="finalScore">0</strong></div>
+          <div><span>المحاولات</span><strong id="finalMoves">0</strong></div>
+          <div><span>الأزواج المكتشفة</span><strong id="finalPairs">0</strong></div>
+          <div><span>الوقت الكلي</span><strong id="finalDuration">0 ث</strong></div>
+        </div>
+
+        <p id="finalSaveStatus" class="final-save-status" aria-live="polite"></p>
+        <div class="final-actions">
+          <button id="reviewFinalErrorsButton" class="secondary-button" type="button">عرض الأسئلة الخاطئة</button>
+          <button id="restartLessonButton" class="primary-button" type="button">إعادة اللعبة</button>
+          <button id="finalBackToLevelsButton" class="secondary-button" type="button">العودة إلى المستويات</button>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <dialog id="questionDialog" class="question-dialog" aria-labelledby="questionTitle">
+    <section class="question-panel">
+      <header class="question-header">
+        <div>
+          <p class="eyebrow">سؤال الزوج المكتشف</p>
+          <h2 id="questionTitle">اختر الإجابة الصحيحة</h2>
+        </div>
+        <div class="question-timer" aria-label="الوقت المتبقي">
+          <span aria-hidden="true">⏱️</span>
+          <strong id="questionTimer">30</strong>
+          <small>ثانية</small>
+        </div>
+      </header>
+      <p id="questionText" class="question-text"></p>
+      <div id="questionOptions" class="question-options" role="radiogroup" aria-label="خيارات الإجابة"></div>
+      <section id="questionFeedback" class="question-feedback" aria-live="polite" hidden></section>
+      <button id="submitAnswerButton" class="primary-button question-submit" type="button" disabled>اعتماد الإجابة</button>
+    </section>
+  </dialog>
+
+  <dialog id="finalErrorsDialog" class="final-errors-dialog" aria-labelledby="finalErrorsTitle">
+    <section class="final-errors-panel">
+      <header>
+        <div><p class="eyebrow">مراجعة التعلم</p><h2 id="finalErrorsTitle">الأسئلة الخاطئة</h2></div>
+        <button id="closeFinalErrorsButton" class="secondary-button" type="button">إغلاق</button>
+      </header>
+      <div id="finalErrorsList" class="final-errors-list"></div>
+    </section>
+  </dialog>
+  <script src="app.js" defer></script>
+</body>
+</html>
