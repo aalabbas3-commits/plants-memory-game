@@ -857,7 +857,10 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   .side-panel-copy h2 { font-size: .78rem; white-space: nowrap; }
   .side-stat-grid { display: none; }
   .side-progress { grid-column: 3; grid-row: 1; height: 8px; border-width: 1px; }
-  .board-surface { padding-top: 3px; padding-inline: 0; }
+  .board-surface,
+  body[data-theme="THEME_02"] .board-surface,
+  body[data-theme="THEME_04"] .board-surface,
+  body[data-theme="THEME_08"] .board-surface { padding-top: 3px; padding-inline: 0; }
   .team-scoreboard { overflow-x: auto; justify-content: flex-start; }
   .team-score { flex: 0 0 132px; }
   .hud-item { min-width: 0; padding: 9px; }

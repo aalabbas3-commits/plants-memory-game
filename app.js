@@ -768,6 +768,7 @@ function smartRows(cardCount) {
 function responsiveRows(cardCount, availableWidth, availableHeight) {
   const gap = availableWidth <= 560 ? 7 : 11;
   if (availableWidth <= 560) {
+    if (cardCount === 8) return [2, 2, 2, 2];
     const minimumMobileCardWidth = 76;
     const columnsAllowedByWidth = Math.floor((availableWidth + gap) / (minimumMobileCardWidth + gap));
     const maximumColumns = Math.min(4, cardCount, Math.max(2, columnsAllowedByWidth));
@@ -865,7 +866,9 @@ function fitBoardToViewport() {
   }
   const columnCount = Math.max(...rows);
   const rowCount = rows.length;
-  const widthLimit = (availableWidth - gap * (columnCount - 1)) / columnCount;
+  const isPortraitLevelTwo = viewportWidth <= 560 && state.game.deck.length === 8;
+  const widthReferenceColumns = isPortraitLevelTwo ? 4 : columnCount;
+  const widthLimit = (availableWidth - gap * (widthReferenceColumns - 1)) / widthReferenceColumns;
   const heightLimit = (availableHeight - gap * (rowCount - 1)) / rowCount;
   const sizeLimit = viewportWidth <= 560 ? widthLimit : Math.min(widthLimit, heightLimit * 0.8);
   const cardWidth = Math.max(28, Math.floor(sizeLimit));
