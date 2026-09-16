@@ -72,6 +72,7 @@ function showView(id) {
     $(`#${viewId}`).hidden = viewId !== id;
   });
   document.body.classList.toggle('game-active', id === 'gameView');
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
 }
 
 function isGroupMode() {
@@ -394,12 +395,19 @@ function deviceId() {
   return id;
 }
 
-function displayImageUrl(value) {
+function displayImageUrls(value) {
   const url = String(value || '').trim();
-  if (!url || !url.includes('drive.google.com')) return url;
+  if (!url) return [];
+  if (!url.includes('drive.google.com')) return [url];
   const idMatch = url.match(/[?&]id=([^&]+)/) || url.match(/\/d\/([^/]+)/);
-  if (!idMatch) return url;
-  return `https://drive.google.com/thumbnail?id=${encodeURIComponent(idMatch[1])}&sz=w1200`;
+  if (!idMatch) return [url];
+  const fileId = encodeURIComponent(idMatch[1]);
+  const thumbnailUrl = `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200`;
+  return [
+    thumbnailUrl,
+    `${thumbnailUrl}&retry=${Date.now()}`,
+    `https://lh3.googleusercontent.com/d/${fileId}=w1200`
+  ];
 }
 
 function levelKey(level, index = -1) {
@@ -695,10 +703,11 @@ function renderReady() {
 }
 
 function cardFaceMarkup(card) {
-  const imageUrl = displayImageUrl(card.image_url);
+  const imageUrls = displayImageUrls(card.image_url);
+  const imageUrl = imageUrls[0] || '';
   const title = card.card_title || 'بطاقة نباتية';
   if (imageUrl) {
-    return `<span class="memory-card-visual"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(card.image_description || title)}" loading="eager"><span class="card-fallback" aria-hidden="true">🌱</span></span>`;
+    return `<span class="memory-card-visual"><img src="${escapeHtml(imageUrl)}" data-image-candidates="${escapeHtml(JSON.stringify(imageUrls))}" alt="${escapeHtml(card.image_description || title)}" loading="eager" decoding="async"><span class="card-fallback" aria-hidden="true">🌱</span></span>`;
   }
   return `<span class="memory-card-visual no-image"><span class="card-fallback" aria-hidden="true">🌱</span></span>`;
 }
@@ -758,6 +767,12 @@ function smartRows(cardCount) {
 
 function responsiveRows(cardCount, availableWidth, availableHeight) {
   const gap = availableWidth <= 560 ? 7 : 11;
+  if (availableWidth <= 560) {
+    const minimumMobileCardWidth = 76;
+    const columnsAllowedByWidth = Math.floor((availableWidth + gap) / (minimumMobileCardWidth + gap));
+    const maximumColumns = Math.min(4, cardCount, Math.max(2, columnsAllowedByWidth));
+    return balancedRows(cardCount, maximumColumns).reverse();
+  }
   let best = null;
   const minimumComfortableCardWidth = 96;
   const columnsAllowedByWidth = Math.floor((availableWidth + gap) / (minimumComfortableCardWidth + gap));
@@ -813,10 +828,20 @@ function renderBoard(forcedRows = null) {
     return `<div class="memory-row">${rowCards.map(memoryCardMarkup).join('')}</div>`;
   }).join('');
   grid.querySelectorAll('img').forEach((image) => {
+    let candidates = [];
+    try { candidates = JSON.parse(image.dataset.imageCandidates || '[]'); } catch (_) {}
+    let candidateIndex = 1;
+    image.addEventListener('load', () => image.parentElement?.classList.remove('image-failed'));
     image.addEventListener('error', () => {
-      image.parentElement.classList.add('image-failed');
+      if (candidateIndex < candidates.length) {
+        const nextUrl = candidates[candidateIndex];
+        candidateIndex += 1;
+        window.setTimeout(() => { if (image.isConnected) image.src = nextUrl; }, 260 * candidateIndex);
+        return;
+      }
+      image.parentElement?.classList.add('image-failed');
       image.remove();
-    }, { once: true });
+    });
   });
   window.requestAnimationFrame(fitBoardToViewport);
 }
@@ -832,8 +857,7 @@ function fitBoardToViewport() {
   const boardTop = boardSurface?.getBoundingClientRect().top ?? grid.getBoundingClientRect().top;
   const reservedBottomSpace = viewportWidth <= 560 ? 30 : viewportWidth <= 850 ? 42 : 56;
   const viewportAvailableHeight = viewportHeight - boardTop - 10;
-  const surfaceHeight = boardSurface?.clientHeight || viewportAvailableHeight;
-  const availableHeight = Math.max(120, Math.min(surfaceHeight, viewportAvailableHeight) - reservedBottomSpace);
+  const availableHeight = Math.max(120, viewportAvailableHeight - reservedBottomSpace);
   const rows = resolvedRowLayout(state.game.level, state.game.deck.length, availableWidth, availableHeight);
   if (grid.dataset.rowLayout !== rows.join('-')) {
     renderBoard(rows);
@@ -843,7 +867,8 @@ function fitBoardToViewport() {
   const rowCount = rows.length;
   const widthLimit = (availableWidth - gap * (columnCount - 1)) / columnCount;
   const heightLimit = (availableHeight - gap * (rowCount - 1)) / rowCount;
-  const cardWidth = Math.max(28, Math.floor(Math.min(widthLimit, heightLimit * 0.8)));
+  const sizeLimit = viewportWidth <= 560 ? widthLimit : Math.min(widthLimit, heightLimit * 0.8);
+  const cardWidth = Math.max(28, Math.floor(sizeLimit));
   const cardHeight = Math.floor(cardWidth * 1.25);
   const boardWidth = cardWidth * columnCount + gap * (columnCount - 1);
   grid.dataset.rowCount = String(rowCount);

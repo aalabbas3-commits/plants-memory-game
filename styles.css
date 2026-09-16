@@ -839,17 +839,25 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   .display-mode-choices { grid-template-columns: 1fr; }
   .lesson-choice { min-height: 112px; padding: 17px; }
   .level-complete { align-items: stretch; flex-direction: column; }
-  .game-header { gap: 8px; }
-  .game-header h1 { font-size: 1.45rem; }
-  .game-header .eyebrow { margin-bottom: 3px; font-size: .8rem; }
+  .game-screen { padding-top: 8px; }
+  body[data-theme] .game-header { gap: 7px; margin-bottom: 5px; padding: 6px 9px; border-width: 2px; border-radius: 17px; }
+  .game-header h1 { font-size: 1.28rem; }
+  .game-header .eyebrow { margin-bottom: 1px; font-size: .68rem; }
   .game-actions { flex-wrap: nowrap; gap: 6px; }
-  .game-actions .secondary-button { min-height: 40px; padding: 7px 9px; font-size: .82rem; }
-  .game-hud { grid-template-columns: 1fr 1fr; padding: 7px; }
-  body[data-theme="THEME_05"] .game-hud, body[data-theme="THEME_02"] .game-hud, body[data-theme="THEME_04"] .game-hud, body[data-theme="THEME_08"] .game-hud { width: 100%; border-radius: 20px; }
-  .greenhouse-side-panel { grid-template-columns: auto minmax(0, 1fr); }
+  .game-actions .secondary-button { min-height: 34px; padding: 5px 8px; border-radius: 10px; font-size: .72rem; }
+  body[data-theme] .game-hud { grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; margin-bottom: 5px; padding: 5px; border-width: 2px; border-radius: 15px; }
+  body[data-theme] .game-hud .hud-item { min-width: 0; padding: 4px 7px; border-radius: 11px; }
+  .hud-item span { font-size: .68rem; }
+  .hud-item strong { margin-top: 1px; font-size: 1rem; }
+  .game-message { padding: 2px 4px; font-size: .78rem; line-height: 1.35; }
+  body[data-theme] .greenhouse-side-panel { grid-template-columns: 42px auto minmax(90px, 1fr); align-items: center; gap: 6px; padding: 5px 7px; border-width: 2px; border-radius: 15px; }
+  .side-plant-window { width: 42px; min-height: 42px; border-width: 2px; border-radius: 12px; }
+  .side-plant-window img { width: 31px; height: 31px; }
+  .side-panel-copy .eyebrow { margin: 0; font-size: .62rem; }
+  .side-panel-copy h2 { font-size: .78rem; white-space: nowrap; }
   .side-stat-grid { display: none; }
-  .side-progress { grid-column: 2; }
-  .side-panel-copy h2 { font-size: .95rem; }
+  .side-progress { grid-column: 3; grid-row: 1; height: 8px; border-width: 1px; }
+  .board-surface { padding-top: 3px; }
   .team-scoreboard { overflow-x: auto; justify-content: flex-start; }
   .team-score { flex: 0 0 132px; }
   .hud-item { min-width: 0; padding: 9px; }
