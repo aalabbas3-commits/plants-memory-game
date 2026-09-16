@@ -768,7 +768,7 @@ function smartRows(cardCount) {
 function responsiveRows(cardCount, availableWidth, availableHeight) {
   const gap = availableWidth <= 560 ? 7 : 11;
   if (availableWidth <= 560) {
-    if (cardCount === 8) return [2, 2, 2, 2];
+    if (cardCount === 8) return [2, 3, 3];
     const minimumMobileCardWidth = 76;
     const columnsAllowedByWidth = Math.floor((availableWidth + gap) / (minimumMobileCardWidth + gap));
     const maximumColumns = Math.min(4, cardCount, Math.max(2, columnsAllowedByWidth));
@@ -817,6 +817,10 @@ function memoryCardMarkup(card) {
 
 function renderBoard(forcedRows = null) {
   const grid = $('#memoryGrid');
+  const boardSurface = grid.parentElement;
+  const gameStage = boardSurface?.closest('.game-stage');
+  if (boardSurface) boardSurface.dataset.cardCount = String(state.game.deck.length);
+  if (gameStage) gameStage.dataset.cardCount = String(state.game.deck.length);
   const viewportHeight = window.visualViewport?.height || window.innerHeight;
   const initialWidth = Math.min(window.innerWidth, 1120);
   const rows = forcedRows || resolvedRowLayout(state.game.level, state.game.deck.length, initialWidth, viewportHeight - 180);
@@ -867,7 +871,7 @@ function fitBoardToViewport() {
   const columnCount = Math.max(...rows);
   const rowCount = rows.length;
   const isPortraitLevelTwo = viewportWidth <= 560 && state.game.deck.length === 8;
-  const widthReferenceColumns = isPortraitLevelTwo ? 4 : columnCount;
+  const widthReferenceColumns = isPortraitLevelTwo ? 3.7 : columnCount;
   const widthLimit = (availableWidth - gap * (widthReferenceColumns - 1)) / widthReferenceColumns;
   const heightLimit = (availableHeight - gap * (rowCount - 1)) / rowCount;
   const sizeLimit = viewportWidth <= 560 ? widthLimit : Math.min(widthLimit, heightLimit * 0.8);

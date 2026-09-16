@@ -861,6 +861,8 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   body[data-theme="THEME_02"] .board-surface,
   body[data-theme="THEME_04"] .board-surface,
   body[data-theme="THEME_08"] .board-surface { padding-top: 3px; padding-inline: 0; }
+  .game-stage[data-card-count="8"] { align-content: start; grid-template-rows: auto auto; }
+  .game-stage[data-card-count="8"] .board-surface { padding-top: clamp(48px, 8svh, 70px); }
   .team-scoreboard { overflow-x: auto; justify-content: flex-start; }
   .team-score { flex: 0 0 132px; }
   .hud-item { min-width: 0; padding: 9px; }
