@@ -1539,6 +1539,56 @@ $('#backButton').addEventListener('click', () => showView('loginView'));
 $('#backFromLessonsButton').addEventListener('click', () => showView('loginView'));
 $('#changeLessonButton').addEventListener('click', renderLessonPicker);
 $('#editTeamsButton').addEventListener('click', renderGroupSetup);
+$('#openFeedbackButton').addEventListener('click', () => {
+  $('#feedbackForm').reset();
+  $('#feedbackStatus').textContent = '';
+  $('#feedbackStatus').classList.remove('is-success');
+  $('#feedbackDialog').showModal();
+  window.setTimeout(() => $('#feedbackType').focus(), 0);
+});
+const closeFeedbackDialog = () => {
+  if ($('#feedbackDialog').open) $('#feedbackDialog').close();
+};
+$('#closeFeedbackButton').addEventListener('click', closeFeedbackDialog);
+$('#cancelFeedbackButton').addEventListener('click', closeFeedbackDialog);
+$('#feedbackDialog').addEventListener('click', (event) => {
+  if (event.target === $('#feedbackDialog')) closeFeedbackDialog();
+});
+$('#feedbackForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const noteText = String($('#feedbackText').value || '').trim();
+  const status = $('#feedbackStatus');
+  status.classList.remove('is-success');
+  if (noteText.length < 3) {
+    status.textContent = 'اكتب الرسالة بصورة أوضح قبل الإرسال.';
+    $('#feedbackText').focus();
+    return;
+  }
+
+  const sendButton = $('#sendFeedbackButton');
+  sendButton.disabled = true;
+  sendButton.textContent = 'جارٍ الإرسال…';
+  status.textContent = '';
+  try {
+    await apiPost('save_note', {
+      session_id: state.lessonRun.sessionId || '',
+      student_name: state.player?.student_name || '',
+      class_name: state.player?.class_name || '',
+      lesson_id: state.selectedLessonId || DEFAULT_LESSON_ID,
+      note_type: $('#feedbackType').value,
+      note_text: noteText
+    });
+    status.textContent = 'تم إرسال رسالتك للمعلم بنجاح.';
+    status.classList.add('is-success');
+    $('#feedbackText').value = '';
+    window.setTimeout(closeFeedbackDialog, 900);
+  } catch (error) {
+    status.textContent = error.message || 'تعذر إرسال الرسالة. تحقق من الإنترنت وحاول مرة أخرى.';
+  } finally {
+    sendButton.disabled = false;
+    sendButton.textContent = 'إرسال للمعلم';
+  }
+});
 $('#backFromGroupButton').addEventListener('click', () => {
   if (!DIRECT_LESSON_ID && getActiveLessons().length > 1) renderLessonPicker();
   else showView('loginView');

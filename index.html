@@ -23,7 +23,7 @@
   <meta name="twitter:image" content="https://aalabbas3-commits.github.io/plants-memory-game/assets/game-share-card-v2.jpg">
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
-  <link rel="stylesheet" href="styles.css?v=0.7.32">
+  <link rel="stylesheet" href="styles.css?v=0.7.33">
 </head>
 <body class="booting" data-theme="THEME_05" data-display-mode="normal">
   <main class="app-shell">
@@ -133,6 +133,7 @@
         <div class="ready-actions">
           <button id="changeLessonButton" class="secondary-button" type="button">تغيير الدرس</button>
           <button id="editTeamsButton" class="secondary-button" type="button" hidden>تعديل الفرق</button>
+          <button id="openFeedbackButton" class="secondary-button feedback-button" type="button">ملاحظة أو استفسار</button>
           <button id="backButton" class="secondary-button" type="button">تعديل البيانات</button>
         </div>
       </header>
@@ -293,6 +294,34 @@
       <div id="finalErrorsList" class="final-errors-list"></div>
     </section>
   </dialog>
-  <script src="app.js?v=0.7.32" defer></script>
+
+  <dialog id="feedbackDialog" class="feedback-dialog" aria-labelledby="feedbackTitle">
+    <form id="feedbackForm" class="feedback-panel">
+      <header class="feedback-header">
+        <div>
+          <p class="eyebrow">تواصل مع المعلم</p>
+          <h2 id="feedbackTitle">ملاحظة أو استفسار</h2>
+        </div>
+        <button id="closeFeedbackButton" class="secondary-button" type="button" aria-label="إغلاق نافذة الملاحظات">إغلاق</button>
+      </header>
+      <p class="feedback-help">اختر نوع الرسالة واكتبها، وستظهر للمعلم مع اسمك وفصلك والدرس الحالي.</p>
+      <label for="feedbackType">نوع الرسالة
+        <select id="feedbackType" name="note_type">
+          <option value="student">ملاحظة</option>
+          <option value="teacher">استفسار</option>
+          <option value="technical">مشكلة تقنية</option>
+        </select>
+      </label>
+      <label for="feedbackText">نص الرسالة
+        <textarea id="feedbackText" name="note_text" rows="5" maxlength="2000" required placeholder="اكتب ملاحظتك أو استفسارك هنا..."></textarea>
+      </label>
+      <p id="feedbackStatus" class="feedback-status" role="status" aria-live="polite"></p>
+      <div class="feedback-actions">
+        <button id="sendFeedbackButton" class="primary-button" type="submit">إرسال للمعلم</button>
+        <button id="cancelFeedbackButton" class="secondary-button" type="button">إلغاء</button>
+      </div>
+    </form>
+  </dialog>
+  <script src="app.js?v=0.7.33" defer></script>
 </body>
 </html>
