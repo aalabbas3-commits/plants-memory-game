@@ -862,7 +862,8 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   #loginView .form-heading span { font-size: .72rem; }
   #loginView .form-heading strong { font-size: 1.1rem; }
   #loginView .student-form > label { gap: 3px; font-size: .7rem; }
-  #loginView input[type="text"] { min-height: 40px; padding: 7px 11px; border-radius: 11px; font-size: .86rem; }
+  #loginView input[type="text"] { min-height: 40px; padding: 7px 11px; border-radius: 11px; font-size: 16px; }
+  select, textarea { font-size: 16px; }
   #loginView fieldset { margin-top: 0; }
   #loginView legend { margin-bottom: 5px; font-size: .74rem; }
   #loginView .mode-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
@@ -990,7 +991,7 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   #loginView .student-form { gap: 5px; padding: 7px 13px 9px; }
   #loginView .form-heading strong { font-size: .95rem; }
   #loginView .form-heading span, #loginView .student-form > label, #loginView legend { font-size: .64rem; }
-  #loginView input[type="text"] { min-height: 34px; padding-block: 5px; font-size: .78rem; }
+  #loginView input[type="text"] { min-height: 34px; padding-block: 5px; font-size: 16px; }
   #loginView .mode-card { min-height: 57px; padding-block: 5px; }
   #loginView .mode-icon { font-size: 20px; }
   #loginView .mode-card strong { font-size: .7rem; }
