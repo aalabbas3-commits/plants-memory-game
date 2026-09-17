@@ -1539,13 +1539,13 @@ $('#backButton').addEventListener('click', () => showView('loginView'));
 $('#backFromLessonsButton').addEventListener('click', () => showView('loginView'));
 $('#changeLessonButton').addEventListener('click', renderLessonPicker);
 $('#editTeamsButton').addEventListener('click', renderGroupSetup);
-$('#openFeedbackButton').addEventListener('click', () => {
+document.querySelectorAll('[data-open-feedback]').forEach((button) => button.addEventListener('click', () => {
   $('#feedbackForm').reset();
   $('#feedbackStatus').textContent = '';
   $('#feedbackStatus').classList.remove('is-success');
   $('#feedbackDialog').showModal();
   window.setTimeout(() => $('#feedbackType').focus(), 0);
-});
+}));
 const closeFeedbackDialog = () => {
   if ($('#feedbackDialog').open) $('#feedbackDialog').close();
 };

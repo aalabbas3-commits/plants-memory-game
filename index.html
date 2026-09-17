@@ -23,7 +23,7 @@
   <meta name="twitter:image" content="https://aalabbas3-commits.github.io/plants-memory-game/assets/game-share-card-v2.jpg">
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
-  <link rel="stylesheet" href="styles.css?v=0.7.33">
+  <link rel="stylesheet" href="styles.css?v=0.7.34">
 </head>
 <body class="booting" data-theme="THEME_05" data-display-mode="normal">
   <main class="app-shell">
@@ -133,14 +133,26 @@
         <div class="ready-actions">
           <button id="changeLessonButton" class="secondary-button" type="button">تغيير الدرس</button>
           <button id="editTeamsButton" class="secondary-button" type="button" hidden>تعديل الفرق</button>
-          <button id="openFeedbackButton" class="secondary-button feedback-button" type="button">ملاحظة أو استفسار</button>
           <button id="backButton" class="secondary-button" type="button">تعديل البيانات</button>
         </div>
       </header>
 
-      <section class="ready-card">
-        <h2 id="readyLessonTitle">الدرس</h2>
-        <span id="modeBadge" class="mode-badge"></span>
+      <section class="ready-summary-row" aria-label="بيانات الدرس والتواصل مع المعلم">
+        <article class="ready-card">
+          <div>
+            <p class="eyebrow">الدرس الحالي</p>
+            <h2 id="readyLessonTitle">الدرس</h2>
+          </div>
+          <span id="modeBadge" class="mode-badge"></span>
+        </article>
+        <article class="feedback-entry-card">
+          <span class="feedback-entry-icon" aria-hidden="true">◯</span>
+          <div class="feedback-entry-copy">
+            <strong>هل لديك ملاحظة أو استفسار؟</strong>
+            <span>أرسلها مباشرة إلى المعلم مع اسمك وفصلك والدرس.</span>
+          </div>
+          <button class="primary-button feedback-entry-button" type="button" data-open-feedback>إرسال للمعلم</button>
+        </article>
       </section>
 
       <details id="appearancePanel" class="appearance-panel" hidden>
@@ -256,6 +268,14 @@
         </div>
 
         <p id="finalSaveStatus" class="final-save-status" aria-live="polite"></p>
+        <section class="final-feedback-card">
+          <span class="feedback-entry-icon" aria-hidden="true">◯</span>
+          <div class="feedback-entry-copy">
+            <strong>هل لديك ملاحظة أو استفسار؟</strong>
+            <span>يمكنك إرسال رأيك أو سؤالك للمعلم بعد انتهاء الجولة.</span>
+          </div>
+          <button class="secondary-button" type="button" data-open-feedback>إرسال للمعلم</button>
+        </section>
         <div class="final-actions">
           <button id="reviewFinalErrorsButton" class="secondary-button" type="button">عرض الأسئلة الخاطئة</button>
           <button id="restartLessonButton" class="primary-button" type="button">إعادة اللعبة</button>
@@ -322,6 +342,6 @@
       </div>
     </form>
   </dialog>
-  <script src="app.js?v=0.7.33" defer></script>
+  <script src="app.js?v=0.7.34" defer></script>
 </body>
 </html>
