@@ -750,7 +750,8 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
 
 .question-dialog { width: min(720px, calc(100% - 24px)); max-height: min(92svh, 820px); padding: 0; border: 0; border-radius: 26px; color: var(--ink); background: transparent; box-shadow: 0 28px 90px rgba(3,38,25,.35); }
 .question-dialog::backdrop { background: rgba(4,39,27,.7); backdrop-filter: blur(5px); }
-.question-panel { overflow: auto; max-height: min(92svh, 820px); padding: clamp(22px, 4vw, 36px); border: 2px solid #b9dfcc; border-radius: 26px; background: #fffdf7; }
+.question-panel { display: grid; grid-template-rows: minmax(0, 1fr) auto; overflow: hidden; max-height: min(92svh, 820px); padding: 0; border: 2px solid #b9dfcc; border-radius: 26px; background: #fffdf7; }
+.question-scroll-content { min-height: 0; overflow: auto; padding: clamp(22px, 4vw, 36px); overscroll-behavior: contain; }
 .question-header { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .question-header h2 { margin: 0; color: var(--deep); font-size: clamp(1.35rem, 4vw, 2rem); }
 .question-timer { display: flex; flex: 0 0 auto; align-items: baseline; gap: 5px; min-width: 118px; padding: 11px 14px; border-radius: 17px; color: var(--deep); background: var(--gold-soft); }
@@ -769,7 +770,7 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
 .question-feedback.correct { color: #075535; background: #ddf6e7; }
 .question-feedback.wrong { color: #7d302b; background: #ffe9e6; }
 .question-feedback strong { display: block; margin-bottom: 4px; }
-.question-submit { width: 100%; margin-top: 18px; }
+.question-submit { width: auto; margin: 0 clamp(22px, 4vw, 36px) clamp(22px, 4vw, 36px); box-shadow: 0 -12px 22px #fffdf7, 0 9px 22px rgba(13,106,73,.2); }
 
 .result-screen { display: grid; place-items: center; }
 .final-result-card { width: min(900px, 100%); padding: clamp(25px, 5vw, 48px); border: 1px solid #b9dfcc; border-radius: 30px; background: rgba(255,255,255,.95); box-shadow: var(--shadow); text-align: center; }
@@ -964,7 +965,8 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   .memory-card-front, .memory-card-back { border-width: 2px; }
   .memory-card-front { padding: 6px; }
   .complete-actions, .complete-actions button { width: 100%; }
-  .question-panel { padding: 19px 15px; }
+  .question-scroll-content { padding: 19px 15px 10px; }
+  .question-submit { margin: 0 15px 15px; }
   .question-header { align-items: flex-start; }
   .question-timer { min-width: auto; padding: 9px 10px; }
   .question-options { grid-template-columns: 1fr; }
@@ -1015,6 +1017,26 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   .level-number { width: 25px; height: 25px; font-size: .68rem; }
   .level-card h3 { margin: 5px 0 2px; font-size: .78rem; }
   .level-card p, .level-start { font-size: .6rem; }
+}
+
+@media (max-width: 560px) and (max-height: 780px) {
+  .question-dialog, .question-panel { max-height: calc(100svh - 12px); }
+  .question-dialog { width: calc(100% - 12px); border-radius: 18px; }
+  .question-panel { border-radius: 18px; }
+  .question-scroll-content { padding: 11px 11px 7px; }
+  .question-header { align-items: center; gap: 8px; }
+  .question-header .eyebrow { margin-bottom: 2px; font-size: .65rem; }
+  .question-header h2 { font-size: 1.05rem; }
+  .question-timer { gap: 3px; min-width: auto; padding: 6px 8px; border-radius: 11px; }
+  .question-timer strong { font-size: 1.15rem; }
+  .question-timer small { font-size: .68rem; }
+  .question-text { margin: 10px 0 8px; font-size: 1rem; line-height: 1.5; }
+  .question-options { gap: 6px; }
+  .question-option { min-height: 47px; gap: 8px; padding: 6px 9px; border-radius: 12px; font-size: .86rem; line-height: 1.32; }
+  .question-option-letter { flex-basis: 29px; width: 29px; height: 29px; border-radius: 9px; }
+  .question-feedback { margin-top: 7px; padding: 8px 10px; border-radius: 12px; font-size: .82rem; line-height: 1.45; }
+  .question-feedback strong { margin-bottom: 2px; }
+  .question-submit { min-height: 42px; margin: 0 11px 10px; padding-block: 7px; box-shadow: 0 -8px 16px #fffdf7, 0 7px 16px rgba(13,106,73,.2); }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -23,7 +23,7 @@
   <meta name="twitter:image" content="https://aalabbas3-commits.github.io/plants-memory-game/assets/game-share-card-v2.jpg">
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
-  <link rel="stylesheet" href="styles.css?v=0.7.36">
+  <link rel="stylesheet" href="styles.css?v=0.7.37">
 </head>
 <body class="booting" data-theme="THEME_05" data-display-mode="normal">
   <main class="app-shell">
@@ -287,20 +287,22 @@
 
   <dialog id="questionDialog" class="question-dialog" aria-labelledby="questionTitle">
     <section class="question-panel">
-      <header class="question-header">
-        <div>
-          <p class="eyebrow">سؤال الزوج المكتشف</p>
-          <h2 id="questionTitle">اختر الإجابة الصحيحة</h2>
-        </div>
-        <div class="question-timer" aria-label="الوقت المتبقي">
-          <span aria-hidden="true">⏱️</span>
-          <strong id="questionTimer">30</strong>
-          <small>ثانية</small>
-        </div>
-      </header>
-      <p id="questionText" class="question-text"></p>
-      <div id="questionOptions" class="question-options" role="radiogroup" aria-label="خيارات الإجابة"></div>
-      <section id="questionFeedback" class="question-feedback" aria-live="polite" hidden></section>
+      <div class="question-scroll-content">
+        <header class="question-header">
+          <div>
+            <p class="eyebrow">سؤال الزوج المكتشف</p>
+            <h2 id="questionTitle">اختر الإجابة الصحيحة</h2>
+          </div>
+          <div class="question-timer" aria-label="الوقت المتبقي">
+            <span aria-hidden="true">⏱️</span>
+            <strong id="questionTimer">30</strong>
+            <small>ثانية</small>
+          </div>
+        </header>
+        <p id="questionText" class="question-text"></p>
+        <div id="questionOptions" class="question-options" role="radiogroup" aria-label="خيارات الإجابة"></div>
+        <section id="questionFeedback" class="question-feedback" aria-live="polite" hidden></section>
+      </div>
       <button id="submitAnswerButton" class="primary-button question-submit" type="button" disabled>اعتماد الإجابة</button>
     </section>
   </dialog>
@@ -342,6 +344,6 @@
       </div>
     </form>
   </dialog>
-  <script src="app.js?v=0.7.36" defer></script>
+  <script src="app.js?v=0.7.37" defer></script>
 </body>
 </html>
