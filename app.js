@@ -874,17 +874,11 @@ function fitBoardToViewport() {
   const widthReferenceColumns = isPortraitLevelTwo ? 3.7 : columnCount;
   const widthLimit = (availableWidth - gap * (widthReferenceColumns - 1)) / widthReferenceColumns;
   const heightLimit = (availableHeight - gap * (rowCount - 1)) / rowCount;
-  const heightSafeWidth = heightLimit * 0.8;
-  const projectedMobileHeight = widthLimit * 1.25 * rowCount + gap * (rowCount - 1);
-  const needsShortScreenFit = viewportWidth <= 560 && projectedMobileHeight > availableHeight + 12;
-  const sizeLimit = viewportWidth <= 560
-    ? (needsShortScreenFit ? Math.min(widthLimit, heightSafeWidth) : widthLimit)
-    : Math.min(widthLimit, heightSafeWidth);
+  const sizeLimit = viewportWidth <= 560 ? widthLimit : Math.min(widthLimit, heightLimit * 0.8);
   const cardWidth = Math.max(28, Math.floor(sizeLimit));
   const cardHeight = Math.floor(cardWidth * 1.25);
   const boardWidth = cardWidth * columnCount + gap * (columnCount - 1);
   grid.dataset.rowCount = String(rowCount);
-  grid.dataset.shortScreenFit = needsShortScreenFit ? 'true' : 'false';
   grid.style.width = `${Math.min(availableWidth, boardWidth)}px`;
   grid.style.rowGap = `${gap}px`;
   grid.style.setProperty('--board-column-gap', `${gap}px`);
