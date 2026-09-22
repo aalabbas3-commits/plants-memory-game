@@ -9,6 +9,7 @@ const RUN_STORAGE_PREFIX = 'plants_lesson_run_v1_';
 const RUN_RESUME_KEY = 'plants_active_lesson_run_v1';
 const params = new URLSearchParams(window.location.search);
 const DIRECT_LESSON_ID = String(params.get('lesson') || params.get('lesson_id') || '').trim();
+const HOME_SCIENCE_ICONS = Array.from({ length: 24 }, (_, index) => `assets/home-science-${String(index + 1).padStart(2, '0')}.png`);
 
 const state = {
   content: null,
@@ -75,7 +76,17 @@ function showView(id) {
   document.body.classList.toggle('game-active', id === 'gameView');
   document.body.classList.toggle('home-active', id === 'loginView');
   window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-  if (id === 'loginView' && state.content) window.setTimeout(() => loadLeaderboard(state.selectedLessonId), 0);
+  if (id === 'loginView') {
+    renderHomeScienceIcons();
+    if (state.content) window.setTimeout(() => loadLeaderboard(state.selectedLessonId), 0);
+  }
+}
+
+function renderHomeScienceIcons() {
+  const icons = shuffle(HOME_SCIENCE_ICONS).slice(0, 4);
+  document.querySelectorAll('#loginView .science-tile img').forEach((image, index) => {
+    image.src = icons[index] || HOME_SCIENCE_ICONS[index];
+  });
 }
 
 function isGroupMode() {
@@ -439,8 +450,10 @@ function updatePlayerModeLabels(group) {
 function applyGameModeAvailability() {
   const groupRadio = document.querySelector('input[name="game_mode"][value="class"]');
   const soloRadio = document.querySelector('input[name="game_mode"][value="solo"]');
+  const groupCard = groupRadio.closest('.mode-card');
   const groupAvailable = getActiveLessons().some(lessonAllowsGroupMode);
-  $('#gameModeField').hidden = !groupAvailable;
+  $('#gameModeField').hidden = false;
+  groupCard.hidden = !groupAvailable;
   groupRadio.disabled = !groupAvailable;
   if (!groupAvailable) {
     soloRadio.checked = true;
@@ -523,7 +536,10 @@ function renderLeaderboard(rows = [], lessonName = '') {
   list.innerHTML = rows.slice(0, 10).map((row) => `
     <li>
       <span class="leaderboard-name" title="${escapeHtml(row.student_name || '')}">${escapeHtml(row.student_name || 'طالب')}</span>
-      <span class="leaderboard-score" title="${escapeHtml(String(row.correct_answers || 0))} إجابة صحيحة خلال ${escapeHtml(formatLeaderboardDuration(row.duration_seconds))}">${escapeHtml(String(row.correct_answers || 0))} · ${escapeHtml(formatLeaderboardDuration(row.duration_seconds))}</span>
+      <span class="leaderboard-score" title="${escapeHtml(String(row.score || 0))} درجة خلال ${escapeHtml(formatLeaderboardDuration(row.duration_seconds))}">
+        <span class="leaderboard-points">${escapeHtml(String(row.score || 0))} درجة</span>
+        <span class="leaderboard-duration">${escapeHtml(formatLeaderboardDuration(row.duration_seconds))}</span>
+      </span>
     </li>`).join('');
 }
 
@@ -1561,13 +1577,6 @@ $('#studentForm').addEventListener('submit', async (event) => {
 document.querySelectorAll('input[name="game_mode"]').forEach((input) => input.addEventListener('change', () => {
   const group = document.querySelector('input[name="game_mode"]:checked')?.value === 'class';
   updatePlayerModeLabels(group);
-}));
-
-document.querySelectorAll('#loginView .mode-card').forEach((card) => card.addEventListener('click', (event) => {
-  if (event.target.matches('input')) return;
-  window.setTimeout(() => {
-    if (!$('#loginView').hidden) $('#studentForm').requestSubmit();
-  }, 0);
 }));
 
 document.querySelectorAll('input[name="team_count"]').forEach((input) => input.addEventListener('change', () => {

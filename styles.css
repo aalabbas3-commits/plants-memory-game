@@ -1054,7 +1054,7 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   .loader-spinner { animation: none; }
 }
 
-/* الصفحة الرئيسية المستقلة – الإصدار 0.7.39 */
+/* الصفحة الرئيسية المستقلة – الإصدار 0.7.40 */
 .visually-hidden {
   position: absolute !important;
   width: 1px !important;
@@ -1078,8 +1078,8 @@ body.home-active {
     linear-gradient(145deg, #f7fbff, #eef8ff 48%, #f9fbff) !important;
 }
 
-body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
-#loginView { min-height: 100svh; padding: clamp(12px, 2.2vh, 26px) 0; }
+body.home-active .app-shell { width: 100%; max-width: none; }
+#loginView { min-height: 100svh; padding: 0; }
 #loginView .home-panel {
   direction: ltr;
   display: grid;
@@ -1089,18 +1089,18 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
     "brand brand brand"
     "leaders form decor";
   gap: clamp(16px, 2.2vw, 28px);
-  min-height: calc(100svh - 72px);
+  min-height: 100svh;
   padding: clamp(20px, 3vw, 38px);
   overflow: hidden;
-  border: 1px solid rgba(199, 220, 244, .85);
-  border-radius: 32px;
+  border: 0;
+  border-radius: 0;
   background:
     radial-gradient(circle at 4% 6%, rgba(105,218,216,.26) 0 8rem, transparent 8.15rem),
     radial-gradient(circle at 95% 8%, rgba(113,190,255,.25) 0 9rem, transparent 9.2rem),
     radial-gradient(circle at 12% 94%, rgba(105,223,164,.24) 0 7.5rem, transparent 7.7rem),
     radial-gradient(circle at 82% 96%, rgba(255,211,119,.28) 0 9rem, transparent 9.2rem),
     linear-gradient(145deg, rgba(251,253,255,.98), rgba(237,247,255,.97));
-  box-shadow: 0 26px 70px rgba(40, 85, 140, .16);
+  box-shadow: none;
 }
 
 #loginView .home-panel > * { direction: rtl; }
@@ -1112,30 +1112,23 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
   min-height: 130px;
   text-align: center;
 }
-#loginView .home-brain {
-  display: grid;
-  place-items: center;
-  width: 58px;
-  height: 50px;
-  margin-bottom: 1px;
-  color: #ef4e61;
-  font-size: 43px;
-  filter: saturate(1.08) drop-shadow(0 5px 7px rgba(226,65,85,.18));
-}
 #loginView .home-title {
   margin: 0;
-  color: #0b4594;
-  font-family: var(--home-title-font);
-  font-size: clamp(2.25rem, 4.5vw, 4.15rem);
-  font-weight: 900;
-  line-height: 1.12;
-  letter-spacing: -.035em;
+  line-height: 1;
 }
-#loginView .home-brand > p {
+#loginView .home-title img {
+  display: block;
+  width: min(620px, 78vw);
+  height: auto;
+}
+#loginView .home-tagline {
   margin: 8px 0 0;
-  color: #5c7392;
-  font-size: clamp(.87rem, 1.5vw, 1.05rem);
-  font-weight: 700;
+  line-height: 1;
+}
+#loginView .home-tagline img {
+  display: block;
+  width: min(390px, 52vw);
+  height: auto;
 }
 #loginView .content-status { margin-top: 7px; }
 
@@ -1166,14 +1159,20 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
   top: 50%;
   right: 17px;
   width: 30px;
-  color: #617da4;
-  font-size: 20px;
-  line-height: 1;
-  text-align: center;
+  color: #55759e;
   transform: translateY(-50%);
 }
-#loginView .home-users-icon { font-size: 11px; letter-spacing: -5px; }
-#loginView .home-school-icon { font-size: 18px; }
+#loginView .home-field-icon svg {
+  display: block;
+  width: 25px;
+  height: 25px;
+  margin: auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 #loginView input[type="text"] {
   min-height: 59px;
   padding: 12px 58px 12px 17px;
@@ -1193,13 +1192,14 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
 #loginView #gameModeField { margin: 2px 0 0; }
 #loginView .mode-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 #loginView .mode-card {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
   min-height: 92px;
   padding: 14px 12px;
-  border: 0;
+  border: 2px solid rgba(255,255,255,.72);
   border-radius: 16px;
   color: #fff;
   cursor: pointer;
@@ -1208,16 +1208,35 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
 }
 #loginView .mode-card:hover,
 #loginView .mode-card:focus-within { transform: translateY(-2px); filter: brightness(1.04); }
-#loginView .mode-card:has(input:checked) { outline: 3px solid rgba(255,255,255,.92); outline-offset: -6px; }
+#loginView .mode-card::after {
+  content: "✓";
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #0b4594;
+  background: #fff;
+  box-shadow: 0 3px 8px rgba(10,56,111,.2);
+  font-size: .8rem;
+  font-weight: 900;
+  opacity: 0;
+  transform: scale(.75);
+  transition: opacity .16s ease, transform .16s ease;
+}
+#loginView .mode-card:has(input:checked)::after { opacity: 1; transform: scale(1); }
 #loginView .mode-solo { background: linear-gradient(180deg, #24b8f5, #0787e4); }
 #loginView .mode-group { background: linear-gradient(180deg, #4bd96a, #08a944); }
 #loginView .mode-card input { position: absolute; opacity: 0; pointer-events: none; }
-#loginView .mode-icon { font-size: 34px; line-height: 1; filter: grayscale(1) brightness(0) invert(1); }
+#loginView .mode-icon { width: 42px; height: 42px; object-fit: contain; }
 #loginView .mode-card strong { margin: 0; color: #fff; font-size: 1.14rem; }
 #loginView .mode-card small { display: none; }
 #loginView .form-message { min-height: 18px; font-size: .82rem; text-align: center; }
 #loginView .home-continue { min-height: 48px; border-radius: 14px; background: #0b4594; }
-#loginView .student-form:has(#gameModeField:not([hidden])) .home-continue { display: none; }
+#loginView .mode-grid:has(.mode-group[hidden]) { grid-template-columns: 1fr; }
 
 #loginView .home-leaderboard {
   grid-area: leaders;
@@ -1271,11 +1290,20 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
   background: #d9e3f0;
   font-size: .78rem;
 }
-#loginView .leaderboard-list li:nth-child(1)::before { background: #ffd642; }
-#loginView .leaderboard-list li:nth-child(2)::before { background: #dce2ea; }
-#loginView .leaderboard-list li:nth-child(3)::before { background: #efa65d; }
+#loginView .leaderboard-list li:nth-child(1)::before { color: #7c5600; background: linear-gradient(145deg, #fff29b, #ffc425); box-shadow: inset 0 0 0 1px #eeb300; }
+#loginView .leaderboard-list li:nth-child(2)::before { color: #40546a; background: linear-gradient(145deg, #f8fbff, #aebdce); box-shadow: inset 0 0 0 1px #93a5b9; }
+#loginView .leaderboard-list li:nth-child(3)::before { color: #703a12; background: linear-gradient(145deg, #ffd2a7, #df8039); box-shadow: inset 0 0 0 1px #ca6d2b; }
 #loginView .leaderboard-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-#loginView .leaderboard-score { color: #0a4a96; font-variant-numeric: tabular-nums; }
+#loginView .leaderboard-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  color: #0a4a96;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+#loginView .leaderboard-points { font-weight: 900; }
+#loginView .leaderboard-duration { color: #647997; font-weight: 700; }
 #loginView .leaderboard-empty {
   grid-template-columns: 1fr !important;
   min-height: 68px !important;
@@ -1297,31 +1325,13 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
   width: 108px;
   height: 108px;
   border-radius: 22px;
-  font-size: 52px;
   box-shadow: 0 17px 30px rgba(50,86,135,.15);
 }
-#loginView .tile-leaf { top: 14px; right: 19px; background: #c5f4dc; transform: rotate(-12deg); }
-#loginView .tile-paw { top: 116px; left: 8px; background: #fff0bd; transform: rotate(9deg); }
-#loginView .tile-atom { top: 224px; right: 24px; color: #2375e4; background: #dfd4ff; transform: rotate(-8deg); }
-#loginView .tile-globe { top: 305px; left: 8px; background: #d0ecff; transform: rotate(10deg); }
-#loginView .home-science-art p {
-  position: absolute;
-  right: 9px;
-  bottom: 0;
-  margin: 0;
-  color: #36506f;
-  font-size: 1rem;
-  line-height: 1.55;
-}
-#loginView .home-science-art p::after {
-  content: "";
-  display: block;
-  width: 48px;
-  height: 4px;
-  margin-top: 10px;
-  border-radius: 99px;
-  background: #42c985;
-}
+#loginView .science-tile img { width: 82%; height: 82%; object-fit: contain; }
+#loginView .tile-one { top: 14px; right: 19px; background: #c5f4dc; transform: rotate(-12deg); }
+#loginView .tile-two { top: 116px; left: 8px; background: #fff0bd; transform: rotate(9deg); }
+#loginView .tile-three { top: 224px; right: 24px; background: #dfd4ff; transform: rotate(-8deg); }
+#loginView .tile-four { top: 305px; left: 8px; background: #d0ecff; transform: rotate(10deg); }
 #loginView footer { display: none; }
 
 @media (max-width: 900px) {
@@ -1339,9 +1349,9 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
     overflow: visible;
   }
   #loginView .home-brand { min-height: 84px; }
-  #loginView .home-brain { width: 42px; height: 37px; font-size: 31px; }
-  #loginView .home-title { font-size: clamp(1.65rem, 7vw, 2.25rem); }
-  #loginView .home-brand > p { margin-top: 3px; font-size: .72rem; }
+  #loginView .home-title img { width: min(330px, 82vw); }
+  #loginView .home-tagline { margin-top: 3px; }
+  #loginView .home-tagline img { width: min(235px, 60vw); }
   #loginView .student-form {
     min-height: 0;
     gap: 8px;
@@ -1349,11 +1359,11 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
     border-radius: 18px;
   }
   #loginView input[type="text"] { min-height: 43px; padding: 7px 47px 7px 12px; border-radius: 12px; }
-  #loginView .home-field-icon { right: 12px; width: 26px; font-size: 17px; }
-  #loginView .home-users-icon { font-size: 9px; }
+  #loginView .home-field-icon { right: 12px; width: 26px; }
+  #loginView .home-field-icon svg { width: 21px; height: 21px; }
   #loginView .mode-grid { gap: 8px; }
   #loginView .mode-card { min-height: 57px; gap: 7px; padding: 8px; border-radius: 12px; }
-  #loginView .mode-icon { font-size: 23px; }
+  #loginView .mode-icon { width: 27px; height: 27px; }
   #loginView .mode-card strong { font-size: .88rem; }
   #loginView .form-message { min-height: 12px; font-size: .68rem; line-height: 1.2; }
   #loginView .home-continue { min-height: 40px; padding: 7px; }
@@ -1363,6 +1373,7 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
   #loginView .leaderboard-list { grid-template-columns: 1fr; gap: 2px; }
   #loginView .leaderboard-list li { grid-template-columns: 24px minmax(0, 1fr) auto; min-height: 26px; padding: 2px 5px; font-size: .7rem; }
   #loginView .leaderboard-list li::before { width: 21px; height: 21px; font-size: .66rem; }
+  #loginView .leaderboard-score { gap: 8px; }
   #loginView .leaderboard-empty { grid-column: 1 / -1; min-height: 42px !important; }
   #loginView .home-science-art { display: none; }
 }
@@ -1370,9 +1381,8 @@ body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
 @media (max-width: 420px) {
   #loginView .home-panel { padding: 9px; gap: 7px; }
   #loginView .home-brand { min-height: 72px; }
-  #loginView .home-brain { height: 30px; margin: 0; font-size: 27px; }
-  #loginView .home-title { font-size: 1.48rem; }
-  #loginView .home-brand > p { font-size: .62rem; }
+  #loginView .home-title img { width: min(294px, 82vw); }
+  #loginView .home-tagline img { width: min(210px, 60vw); }
   #loginView .student-form { gap: 6px; padding: 9px; }
   #loginView input[type="text"] { min-height: 39px; }
   #loginView .mode-card { min-height: 50px; }
