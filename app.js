@@ -85,8 +85,45 @@ function showView(id) {
 function renderHomeScienceIcons() {
   const icons = shuffle(HOME_SCIENCE_ICONS).slice(0, 4);
   document.querySelectorAll('#loginView .science-tile img').forEach((image, index) => {
+    const tile = image.closest('.science-tile');
+    const fallbackColors = ['#d8e8ff', '#fff0be', '#dcd4ff', '#cff4df'];
+    if (tile) tile.style.setProperty('--tile-color', fallbackColors[index % fallbackColors.length]);
+    image.onload = () => applyScienceTileColor(image);
     image.src = icons[index] || HOME_SCIENCE_ICONS[index];
   });
+}
+
+function applyScienceTileColor(image) {
+  const tile = image.closest('.science-tile');
+  if (!tile || !image.naturalWidth) return;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(image, 0, 0, 32, 32);
+    const pixels = context.getImageData(0, 0, 32, 32).data;
+    let red = 0;
+    let green = 0;
+    let blue = 0;
+    let weight = 0;
+    for (let index = 0; index < pixels.length; index += 4) {
+      const alpha = pixels[index + 3] / 255;
+      if (alpha < .18) continue;
+      const brightness = (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
+      if (brightness > 244) continue;
+      red += pixels[index] * alpha;
+      green += pixels[index + 1] * alpha;
+      blue += pixels[index + 2] * alpha;
+      weight += alpha;
+    }
+    if (!weight) return;
+    const average = [red / weight, green / weight, blue / weight];
+    const pastel = average.map((channel) => Math.round(channel * .24 + 255 * .76));
+    const edge = average.map((channel) => Math.round(channel * .42 + 255 * .58));
+    tile.style.setProperty('--tile-color', `rgb(${pastel.join(',')})`);
+    tile.style.setProperty('--tile-edge', `rgb(${edge.join(',')})`);
+  } catch (_) {}
 }
 
 function isGroupMode() {
@@ -451,9 +488,11 @@ function applyGameModeAvailability() {
   const groupRadio = document.querySelector('input[name="game_mode"][value="class"]');
   const soloRadio = document.querySelector('input[name="game_mode"][value="solo"]');
   const groupCard = groupRadio.closest('.mode-card');
-  const groupAvailable = getActiveLessons().some(lessonAllowsGroupMode);
+  const groupAvailable = Boolean(state.content) && getActiveLessons().some(lessonAllowsGroupMode);
   $('#gameModeField').hidden = false;
-  groupCard.hidden = !groupAvailable;
+  groupCard.hidden = false;
+  groupCard.classList.toggle('is-disabled', !groupAvailable);
+  groupCard.setAttribute('aria-disabled', String(!groupAvailable));
   groupRadio.disabled = !groupAvailable;
   if (!groupAvailable) {
     soloRadio.checked = true;
@@ -1736,10 +1775,21 @@ async function startApplication() {
   if (canResume) state.selectedLessonId = resumeLessonId;
 
   state.pendingLessonId = '';
-  $('#loadingMessage').textContent = canResume ? 'جارٍ استعادة تقدمك…' : 'جارٍ تجهيز المظهر والدرس…';
+  setContentLoading();
+
+  if (!canResume) {
+    document.body.classList.remove('booting');
+    showView('loginView');
+    applyGameModeAvailability();
+    beginInitialLoad().catch((error) => {
+      setContentError(error.message || 'تعذر تحميل الدروس. تحقق من الإنترنت ثم حاول مجددًا.');
+    });
+    return;
+  }
+
+  $('#loadingMessage').textContent = 'جارٍ استعادة تقدمك…';
   $('#retryButton').hidden = true;
   showView('loadingView');
-  setContentLoading();
 
   const revealLoadedApplication = async () => {
     document.body.classList.remove('booting');

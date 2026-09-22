@@ -832,7 +832,7 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   .game-hud { grid-template-columns: 1fr 1fr; }
   .game-message { grid-column: 1 / -1; }
   .theme-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .game-stage, body[data-theme="THEME_05"] .game-stage, body[data-theme="THEME_02"] .game-stage, body[data-theme="THEME_04"] .game-stage { grid-template-columns: 1fr; gap: 7px; }
+  .game-stage, body[data-theme="THEME_05"] .game-stage, body[data-theme="THEME_02"] .game-stage, body[data-theme="THEME_04"] .game-stage, body[data-theme="THEME_08"] .game-stage { grid-template-columns: 1fr; gap: 7px; }
   .greenhouse-side-panel, body[data-theme="THEME_05"] .greenhouse-side-panel { order: -1; grid-template-columns: auto minmax(0, 1fr) minmax(140px, .7fr); align-items: center; gap: 8px; padding: 8px 10px; border-radius: 18px; transform: none; }
   .side-plant-window { width: 58px; min-height: 58px; border-radius: 15px; }
   .side-plant-window img { width: 43px; height: 43px; }
@@ -1054,7 +1054,7 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   .loader-spinner { animation: none; }
 }
 
-/* الصفحة الرئيسية المستقلة – الإصدار 0.7.40 */
+/* الصفحة الرئيسية المستقلة – الإصدار 0.7.41 */
 .visually-hidden {
   position: absolute !important;
   width: 1px !important;
@@ -1083,14 +1083,15 @@ body.home-active .app-shell { width: 100%; max-width: none; }
 #loginView .home-panel {
   direction: ltr;
   display: grid;
-  grid-template-columns: minmax(280px, .82fr) minmax(390px, 1.05fr) minmax(230px, .72fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(280px, 1fr)) minmax(220px, .82fr);
+  grid-template-rows: auto minmax(440px, 1fr) auto;
   grid-template-areas:
     "brand brand brand"
-    "leaders form decor";
+    "leaders form decor"
+    "leaders form tagline";
   gap: clamp(16px, 2.2vw, 28px);
   min-height: 100svh;
-  padding: clamp(20px, 3vw, 38px);
+  padding: clamp(22px, 3vw, 42px) clamp(22px, 3vw, 42px) clamp(42px, 5vh, 64px);
   overflow: hidden;
   border: 0;
   border-radius: 0;
@@ -1112,6 +1113,13 @@ body.home-active .app-shell { width: 100%; max-width: none; }
   min-height: 130px;
   text-align: center;
 }
+#loginView .home-logo {
+  display: block;
+  width: clamp(74px, 6.6vw, 112px);
+  height: clamp(56px, 5vw, 86px);
+  margin-bottom: 5px;
+  object-fit: contain;
+}
 #loginView .home-title {
   margin: 0;
   line-height: 1;
@@ -1122,19 +1130,22 @@ body.home-active .app-shell { width: 100%; max-width: none; }
   height: auto;
 }
 #loginView .home-tagline {
+  grid-area: tagline;
+  align-self: end;
+  justify-self: center;
   margin: 8px 0 0;
   line-height: 1;
 }
 #loginView .home-tagline img {
   display: block;
-  width: min(390px, 52vw);
+  width: min(270px, 90%);
   height: auto;
 }
 #loginView .content-status { margin-top: 7px; }
 
 #loginView .student-form,
 #loginView .home-leaderboard {
-  align-self: center;
+  align-self: stretch;
   border: 1px solid #dce8f7;
   border-radius: 25px;
   background: rgba(255,255,255,.93);
@@ -1145,7 +1156,7 @@ body.home-active .app-shell { width: 100%; max-width: none; }
   display: grid;
   align-content: center;
   gap: 13px;
-  min-height: 420px;
+  min-height: 470px;
   padding: clamp(22px, 3vw, 34px);
   overflow: visible;
 }
@@ -1162,16 +1173,12 @@ body.home-active .app-shell { width: 100%; max-width: none; }
   color: #55759e;
   transform: translateY(-50%);
 }
-#loginView .home-field-icon svg {
+#loginView .home-field-icon img {
   display: block;
   width: 25px;
   height: 25px;
   margin: auto;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  object-fit: contain;
 }
 #loginView input[type="text"] {
   min-height: 59px;
@@ -1208,6 +1215,15 @@ body.home-active .app-shell { width: 100%; max-width: none; }
 }
 #loginView .mode-card:hover,
 #loginView .mode-card:focus-within { transform: translateY(-2px); filter: brightness(1.04); }
+#loginView .mode-card.is-disabled {
+  cursor: not-allowed;
+  opacity: .42;
+  filter: saturate(.5) grayscale(.18);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.34), 0 5px 12px rgba(48,79,112,.11);
+}
+#loginView .mode-card.is-disabled:hover,
+#loginView .mode-card.is-disabled:focus-within { transform: none; filter: saturate(.5) grayscale(.18); }
+#loginView .mode-card.is-disabled::after { display: none; }
 #loginView .mode-card::after {
   content: "✓";
   position: absolute;
@@ -1236,7 +1252,6 @@ body.home-active .app-shell { width: 100%; max-width: none; }
 #loginView .mode-card small { display: none; }
 #loginView .form-message { min-height: 18px; font-size: .82rem; text-align: center; }
 #loginView .home-continue { min-height: 48px; border-radius: 14px; background: #0b4594; }
-#loginView .mode-grid:has(.mode-group[hidden]) { grid-template-columns: 1fr; }
 
 #loginView .home-leaderboard {
   grid-area: leaders;
@@ -1245,11 +1260,16 @@ body.home-active .app-shell { width: 100%; max-width: none; }
   overflow: hidden;
 }
 #loginView .home-leaderboard h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   margin: 0;
   color: #123f83;
   font-size: clamp(1.25rem, 2vw, 1.55rem);
   text-align: center;
 }
+#loginView .leaderboard-title-icon { width: 29px; height: 29px; object-fit: contain; }
 #loginView .leaderboard-lesson {
   margin: 6px 0 13px;
   color: #7688a2;
@@ -1314,24 +1334,32 @@ body.home-active .app-shell { width: 100%; max-width: none; }
 
 #loginView .home-science-art {
   grid-area: decor;
-  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  place-content: center;
   align-self: stretch;
-  min-height: 420px;
+  gap: clamp(14px, 1.5vw, 24px);
+  min-height: 440px;
+  padding: 20px 2px;
 }
 #loginView .science-tile {
-  position: absolute;
+  --tile-color: #e5efff;
+  --tile-edge: #bdd3ef;
   display: grid;
   place-items: center;
-  width: 108px;
-  height: 108px;
-  border-radius: 22px;
+  width: clamp(128px, 10.5vw, 164px);
+  max-width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid var(--tile-edge);
+  border-radius: 27px;
+  background: var(--tile-color);
   box-shadow: 0 17px 30px rgba(50,86,135,.15);
 }
-#loginView .science-tile img { width: 82%; height: 82%; object-fit: contain; }
-#loginView .tile-one { top: 14px; right: 19px; background: #c5f4dc; transform: rotate(-12deg); }
-#loginView .tile-two { top: 116px; left: 8px; background: #fff0bd; transform: rotate(9deg); }
-#loginView .tile-three { top: 224px; right: 24px; background: #dfd4ff; transform: rotate(-8deg); }
-#loginView .tile-four { top: 305px; left: 8px; background: #d0ecff; transform: rotate(10deg); }
+#loginView .science-tile img { width: 90%; height: 90%; object-fit: contain; }
+#loginView .tile-one { transform: rotate(-8deg); }
+#loginView .tile-two { transform: rotate(7deg) translateY(16px); }
+#loginView .tile-three { transform: rotate(7deg) translateY(-5px); }
+#loginView .tile-four { transform: rotate(-7deg) translateY(11px); }
 #loginView footer { display: none; }
 
 @media (max-width: 900px) {
@@ -1339,8 +1367,8 @@ body.home-active .app-shell { width: 100%; max-width: none; }
   #loginView { height: auto; min-height: 100svh; padding: 8px 0; overflow: visible; }
   #loginView .home-panel {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    grid-template-areas: "brand" "form" "leaders";
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas: "brand" "form" "leaders" "tagline";
     gap: 10px;
     height: auto;
     min-height: calc(100svh - 16px);
@@ -1348,10 +1376,11 @@ body.home-active .app-shell { width: 100%; max-width: none; }
     border-radius: 24px;
     overflow: visible;
   }
-  #loginView .home-brand { min-height: 84px; }
+  #loginView .home-brand { min-height: 104px; }
+  #loginView .home-logo { width: 65px; height: 48px; margin-bottom: 1px; }
   #loginView .home-title img { width: min(330px, 82vw); }
-  #loginView .home-tagline { margin-top: 3px; }
-  #loginView .home-tagline img { width: min(235px, 60vw); }
+  #loginView .home-tagline { margin: 2px auto 5px; }
+  #loginView .home-tagline img { width: min(210px, 56vw); }
   #loginView .student-form {
     min-height: 0;
     gap: 8px;
@@ -1360,7 +1389,7 @@ body.home-active .app-shell { width: 100%; max-width: none; }
   }
   #loginView input[type="text"] { min-height: 43px; padding: 7px 47px 7px 12px; border-radius: 12px; }
   #loginView .home-field-icon { right: 12px; width: 26px; }
-  #loginView .home-field-icon svg { width: 21px; height: 21px; }
+  #loginView .home-field-icon img { width: 21px; height: 21px; }
   #loginView .mode-grid { gap: 8px; }
   #loginView .mode-card { min-height: 57px; gap: 7px; padding: 8px; border-radius: 12px; }
   #loginView .mode-icon { width: 27px; height: 27px; }
@@ -1369,6 +1398,7 @@ body.home-active .app-shell { width: 100%; max-width: none; }
   #loginView .home-continue { min-height: 40px; padding: 7px; }
   #loginView .home-leaderboard { padding: 12px 13px; border-radius: 18px; }
   #loginView .home-leaderboard h2 { font-size: 1.08rem; }
+  #loginView .leaderboard-title-icon { width: 24px; height: 24px; }
   #loginView .leaderboard-lesson { margin: 2px 0 7px; font-size: .63rem; }
   #loginView .leaderboard-list { grid-template-columns: 1fr; gap: 2px; }
   #loginView .leaderboard-list li { grid-template-columns: 24px minmax(0, 1fr) auto; min-height: 26px; padding: 2px 5px; font-size: .7rem; }
@@ -1380,9 +1410,10 @@ body.home-active .app-shell { width: 100%; max-width: none; }
 
 @media (max-width: 420px) {
   #loginView .home-panel { padding: 9px; gap: 7px; }
-  #loginView .home-brand { min-height: 72px; }
+  #loginView .home-brand { min-height: 94px; }
+  #loginView .home-logo { width: 56px; height: 42px; }
   #loginView .home-title img { width: min(294px, 82vw); }
-  #loginView .home-tagline img { width: min(210px, 60vw); }
+  #loginView .home-tagline img { width: min(185px, 54vw); }
   #loginView .student-form { gap: 6px; padding: 9px; }
   #loginView input[type="text"] { min-height: 39px; }
   #loginView .mode-card { min-height: 50px; }

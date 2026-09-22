@@ -23,7 +23,7 @@
   <meta name="twitter:image" content="https://aalabbas3-commits.github.io/plants-memory-game/assets/game-share-card-v2.jpg">
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
-  <link rel="stylesheet" href="styles.css?v=0.7.40">
+  <link rel="stylesheet" href="styles.css?v=0.7.41">
 </head>
 <body class="booting" data-theme="THEME_05" data-display-mode="normal">
   <main class="app-shell">
@@ -37,13 +37,13 @@
     <section id="loginView" class="screen" hidden>
       <div class="greenhouse-panel home-panel">
         <header class="home-brand">
+          <img class="home-logo" src="assets/home-logo.png" alt="" aria-hidden="true">
           <h1 id="lessonTitle" class="home-title"><img src="assets/home-title.png" alt="لعبة الذاكرة العلمية"></h1>
-          <p class="home-tagline"><img src="assets/home-tagline.png" alt="معًا نكتشف المعرفة"></p>
           <div id="contentStatus" class="content-status" aria-live="polite" hidden></div>
         </header>
 
         <aside class="home-leaderboard" aria-labelledby="leaderboardTitle">
-          <h2 id="leaderboardTitle"><span aria-hidden="true">🏆</span> أفضل 10 نتائج</h2>
+          <h2 id="leaderboardTitle"><img class="leaderboard-title-icon" src="assets/home-trophy.png" alt="" aria-hidden="true"> أفضل 10 نتائج</h2>
           <p id="leaderboardLesson" class="leaderboard-lesson">حسب الإجابات الصحيحة ثم الزمن</p>
           <ol id="leaderboardList" class="leaderboard-list" aria-live="polite">
             <li class="leaderboard-empty">جارٍ تحميل النتائج…</li>
@@ -51,13 +51,13 @@
         </aside>
 
         <form id="studentForm" class="student-form">
-          <label class="home-field"><span class="home-field-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"></circle><path d="M4.5 21a7.5 7.5 0 0 1 15 0"></path></svg></span><span id="playerNameLabel" class="visually-hidden">اسم الطالب</span>
+          <label class="home-field"><span class="home-field-icon" aria-hidden="true"><img src="assets/home-field-student.png" alt=""></span><span id="playerNameLabel" class="visually-hidden">اسم الطالب</span>
             <input id="studentName" name="student_name" type="text" maxlength="120" autocomplete="name" placeholder="الاسم الكامل" aria-label="الاسم الكامل" required>
           </label>
-          <label class="home-field"><span class="home-field-icon home-users-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"></circle><circle cx="17" cy="9" r="2.5"></circle><path d="M2.8 20a6.2 6.2 0 0 1 12.4 0M14 15.2a5.2 5.2 0 0 1 7.2 4.8"></path></svg></span><span class="visually-hidden">الفصل</span>
+          <label class="home-field"><span class="home-field-icon home-users-icon" aria-hidden="true"><img src="assets/home-field-class.png" alt=""></span><span class="visually-hidden">الفصل</span>
             <input id="className" name="class_name" type="text" maxlength="80" placeholder="الفصل" aria-label="الفصل" required>
           </label>
-          <label class="home-field"><span class="home-field-icon home-school-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V9h14v12M3 9l9-6 9 6M9 21v-5h6v5M8 12h.01M12 12h.01M16 12h.01"></path></svg></span><span class="visually-hidden">المدرسة</span>
+          <label class="home-field"><span class="home-field-icon home-school-icon" aria-hidden="true"><img src="assets/home-field-school.png" alt=""></span><span class="visually-hidden">المدرسة</span>
             <input id="schoolName" name="school_name" type="text" maxlength="160" value="مدرسة جرير الابتدائية بالقطيف" placeholder="المدرسة" aria-label="المدرسة" required>
           </label>
 
@@ -69,8 +69,8 @@
                 <img class="mode-icon" src="assets/home-solo-play.png" alt="" aria-hidden="true">
                 <strong>لعب فردي</strong>
               </label>
-              <label class="mode-card mode-group">
-                <input type="radio" name="game_mode" value="class">
+              <label class="mode-card mode-group is-disabled" aria-disabled="true">
+                <input type="radio" name="game_mode" value="class" disabled>
                 <img class="mode-icon" src="assets/home-group-play.png" alt="" aria-hidden="true">
                 <strong>لعب جماعي</strong>
               </label>
@@ -87,6 +87,7 @@
           <span class="science-tile tile-three"><img alt=""></span>
           <span class="science-tile tile-four"><img alt=""></span>
         </aside>
+        <p class="home-tagline"><img src="assets/home-tagline.png" alt="معًا نكتشف المعرفة"></p>
       </div>
       <footer>إعداد الأستاذ علوي العباس · مدرسة جرير الابتدائية بالقطيف</footer>
     </section>
@@ -352,6 +353,6 @@
       </div>
     </form>
   </dialog>
-  <script src="app.js?v=0.7.40" defer></script>
+  <script src="app.js?v=0.7.41" defer></script>
 </body>
 </html>
