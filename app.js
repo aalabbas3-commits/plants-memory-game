@@ -15,6 +15,7 @@ const state = {
   player: null,
   selectedLessonId: DIRECT_LESSON_ID || DEFAULT_LESSON_ID,
   loadPromise: null,
+  leaderboardRequest: 0,
   pendingLessonId: '',
   usingCache: false,
   appearance: {
@@ -72,7 +73,9 @@ function showView(id) {
     $(`#${viewId}`).hidden = viewId !== id;
   });
   document.body.classList.toggle('game-active', id === 'gameView');
+  document.body.classList.toggle('home-active', id === 'loginView');
   window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  if (id === 'loginView' && state.content) window.setTimeout(() => loadLeaderboard(state.selectedLessonId), 0);
 }
 
 function isGroupMode() {
@@ -501,12 +504,61 @@ async function fetchBootstrap(lessonId) {
   }
 }
 
+function formatLeaderboardDuration(seconds) {
+  const total = Math.max(0, Number(seconds || 0));
+  const minutes = Math.floor(total / 60);
+  const remainder = Math.floor(total % 60);
+  return minutes ? `${minutes}:${String(remainder).padStart(2, '0')}` : `${remainder}ث`;
+}
+
+function renderLeaderboard(rows = [], lessonName = '') {
+  const list = $('#leaderboardList');
+  $('#leaderboardLesson').textContent = lessonName
+    ? `${lessonName} · الصحيحة ثم الأسرع`
+    : 'حسب الإجابات الصحيحة ثم الزمن';
+  if (!rows.length) {
+    list.innerHTML = '<li class="leaderboard-empty">لا توجد نتائج مكتملة بعد — كن أول المتصدرين!</li>';
+    return;
+  }
+  list.innerHTML = rows.slice(0, 10).map((row) => `
+    <li>
+      <span class="leaderboard-name" title="${escapeHtml(row.student_name || '')}">${escapeHtml(row.student_name || 'طالب')}</span>
+      <span class="leaderboard-score" title="${escapeHtml(String(row.correct_answers || 0))} إجابة صحيحة خلال ${escapeHtml(formatLeaderboardDuration(row.duration_seconds))}">${escapeHtml(String(row.correct_answers || 0))} · ${escapeHtml(formatLeaderboardDuration(row.duration_seconds))}</span>
+    </li>`).join('');
+}
+
+async function loadLeaderboard(lessonId = state.selectedLessonId) {
+  const requestId = ++state.leaderboardRequest;
+  const list = $('#leaderboardList');
+  if (!list) return;
+  list.innerHTML = '<li class="leaderboard-empty">جارٍ تحميل النتائج…</li>';
+  const lesson = (state.content?.lessons || []).find((item) => String(item.lesson_id) === String(lessonId));
+  let timeoutId = 0;
+  try {
+    const url = `${API_URL}?action=leaderboard&lesson_id=${encodeURIComponent(lessonId)}&limit=10&_=${Date.now()}`;
+    const controller = new AbortController();
+    timeoutId = window.setTimeout(() => controller.abort(), 12000);
+    const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    const payload = await response.json();
+    if (!response.ok || !payload.ok) throw new Error(payload.error || 'تعذر تحميل النتائج.');
+    if (requestId !== state.leaderboardRequest) return;
+    renderLeaderboard(Array.isArray(payload.data?.rows) ? payload.data.rows : [], lesson?.lesson_name || '');
+  } catch (_) {
+    if (requestId !== state.leaderboardRequest) return;
+    $('#leaderboardLesson').textContent = lesson?.lesson_name || 'أفضل النتائج';
+    list.innerHTML = '<li class="leaderboard-empty">ستظهر النتائج بعد تحديث خدمة البيانات.</li>';
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+}
+
 function applyContent(data, lessonId, fromCache = false) {
   state.content = data;
   state.selectedLessonId = lessonId;
   state.usingCache = fromCache;
   initializeAppearance();
   renderLoginContent();
+  if (!$('#loginView').hidden) loadLeaderboard(lessonId);
 }
 
 function setContentLoading() {
@@ -1509,6 +1561,13 @@ $('#studentForm').addEventListener('submit', async (event) => {
 document.querySelectorAll('input[name="game_mode"]').forEach((input) => input.addEventListener('change', () => {
   const group = document.querySelector('input[name="game_mode"]:checked')?.value === 'class';
   updatePlayerModeLabels(group);
+}));
+
+document.querySelectorAll('#loginView .mode-card').forEach((card) => card.addEventListener('click', (event) => {
+  if (event.target.matches('input')) return;
+  window.setTimeout(() => {
+    if (!$('#loginView').hidden) $('#studentForm').requestSubmit();
+  }, 0);
 }));
 
 document.querySelectorAll('input[name="team_count"]').forEach((input) => input.addEventListener('change', () => {

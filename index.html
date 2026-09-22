@@ -23,7 +23,7 @@
   <meta name="twitter:image" content="https://aalabbas3-commits.github.io/plants-memory-game/assets/game-share-card-v2.jpg">
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
-  <link rel="stylesheet" href="styles.css?v=0.7.38">
+  <link rel="stylesheet" href="styles.css?v=0.7.39">
 </head>
 <body class="booting" data-theme="THEME_05" data-display-mode="normal">
   <main class="app-shell">
@@ -35,50 +35,60 @@
     </section>
 
     <section id="loginView" class="screen" hidden>
-      <div class="greenhouse-panel">
-        <div class="brand-block">
-          <div class="brand-icon" aria-hidden="true">🌿</div>
-          <h1 id="lessonTitle">لعبة الذاكرة العلمية</h1>
-          <p>اكتشف الأزواج المتطابقة وأجب عن أسئلة الدرس الذي تختاره.</p>
+      <div class="greenhouse-panel home-panel">
+        <header class="home-brand">
+          <div class="home-brain" aria-hidden="true">🧠</div>
+          <h1 id="lessonTitle" class="home-title">لعبة الذاكرة العلمية</h1>
+          <p>اكتشف الأزواج المتطابقة وأجب عن أسئلة العلوم</p>
           <div id="contentStatus" class="content-status" aria-live="polite" hidden></div>
-        </div>
+        </header>
+
+        <aside class="home-leaderboard" aria-labelledby="leaderboardTitle">
+          <h2 id="leaderboardTitle"><span aria-hidden="true">🏆</span> أفضل 10 نتائج</h2>
+          <p id="leaderboardLesson" class="leaderboard-lesson">حسب الإجابات الصحيحة ثم الزمن</p>
+          <ol id="leaderboardList" class="leaderboard-list" aria-live="polite">
+            <li class="leaderboard-empty">جارٍ تحميل النتائج…</li>
+          </ol>
+        </aside>
 
         <form id="studentForm" class="student-form">
-          <div class="form-heading">
-            <span>بيانات اللاعب</span>
-            <strong>لنبدأ</strong>
-          </div>
-          <label><span id="playerNameLabel">اسم الطالب</span>
-            <input id="studentName" name="student_name" type="text" maxlength="120" autocomplete="name" placeholder="اكتب اسمك" required>
+          <label class="home-field"><span class="home-field-icon" aria-hidden="true">●</span><span id="playerNameLabel" class="visually-hidden">اسم الطالب</span>
+            <input id="studentName" name="student_name" type="text" maxlength="120" autocomplete="name" placeholder="الاسم الكامل" aria-label="الاسم الكامل" required>
           </label>
-          <label>الفصل
-            <input id="className" name="class_name" type="text" maxlength="80" placeholder="مثال: خامس أ" required>
+          <label class="home-field"><span class="home-field-icon home-users-icon" aria-hidden="true">●●</span><span class="visually-hidden">الفصل</span>
+            <input id="className" name="class_name" type="text" maxlength="80" placeholder="الفصل" aria-label="الفصل" required>
           </label>
-          <label>المدرسة
-            <input id="schoolName" name="school_name" type="text" maxlength="160" value="مدرسة جرير الابتدائية بالقطيف" required>
+          <label class="home-field"><span class="home-field-icon home-school-icon" aria-hidden="true">◆</span><span class="visually-hidden">المدرسة</span>
+            <input id="schoolName" name="school_name" type="text" maxlength="160" value="مدرسة جرير الابتدائية بالقطيف" placeholder="المدرسة" aria-label="المدرسة" required>
           </label>
 
           <fieldset id="gameModeField">
-            <legend>اختر طريقة اللعب</legend>
+            <legend class="visually-hidden">اختر طريقة اللعب</legend>
             <div class="mode-grid">
-              <label class="mode-card">
+              <label class="mode-card mode-solo">
                 <input type="radio" name="game_mode" value="solo" checked>
                 <span class="mode-icon" aria-hidden="true">👤</span>
                 <strong>لعب فردي</strong>
-                <small>لطالب واحد يلعب ويسجل نتيجته</small>
               </label>
-              <label class="mode-card">
+              <label class="mode-card mode-group">
                 <input type="radio" name="game_mode" value="class">
                 <span class="mode-icon" aria-hidden="true">👥</span>
                 <strong>لعب جماعي</strong>
-                <small>لشخصين أو أكثر على جهاز واحد</small>
               </label>
             </div>
           </fieldset>
 
           <p id="formMessage" class="form-message" role="alert" aria-live="polite"></p>
-          <button id="continueFormButton" class="primary-button" type="submit">متابعة</button>
+          <button id="continueFormButton" class="primary-button home-continue" type="submit">متابعة</button>
         </form>
+
+        <aside class="home-science-art" aria-hidden="true">
+          <span class="science-tile tile-leaf">🌿</span>
+          <span class="science-tile tile-paw">🐾</span>
+          <span class="science-tile tile-atom">⚛</span>
+          <span class="science-tile tile-globe">🌎</span>
+          <p>معًا..<br><strong>نكتشف المعرفة</strong></p>
+        </aside>
       </div>
       <footer>إعداد الأستاذ علوي العباس · مدرسة جرير الابتدائية بالقطيف</footer>
     </section>
@@ -344,6 +354,6 @@
       </div>
     </form>
   </dialog>
-  <script src="app.js?v=0.7.38" defer></script>
+  <script src="app.js?v=0.7.39" defer></script>
 </body>
 </html>

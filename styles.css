@@ -15,6 +15,8 @@
   --card-front-border: #ddbd64;
   --card-back: radial-gradient(circle at 30% 22%, #16825b, transparent 38%), linear-gradient(145deg, var(--deep), var(--green));
   --shadow: 0 24px 70px rgba(5, 64, 43, .16);
+  /* يمكن تغيير خط عنوان الصفحة الرئيسية من هذا المتغير فقط. */
+  --home-title-font: Tahoma, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -1050,4 +1052,330 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
 
 @media (prefers-reduced-motion: reduce) {
   .loader-spinner { animation: none; }
+}
+
+/* الصفحة الرئيسية المستقلة – الإصدار 0.7.39 */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+body.home-active {
+  overflow-x: hidden;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 6% 10%, rgba(113, 224, 224, .34) 0 8.5rem, transparent 8.7rem),
+    radial-gradient(circle at 94% 9%, rgba(120, 193, 255, .27) 0 10rem, transparent 10.2rem),
+    radial-gradient(circle at 12% 92%, rgba(114, 224, 168, .28) 0 8rem, transparent 8.2rem),
+    radial-gradient(circle at 85% 92%, rgba(255, 211, 118, .28) 0 10rem, transparent 10.2rem),
+    linear-gradient(145deg, #f7fbff, #eef8ff 48%, #f9fbff) !important;
+}
+
+body.home-active .app-shell { width: min(1280px, calc(100% - 30px)); }
+#loginView { min-height: 100svh; padding: clamp(12px, 2.2vh, 26px) 0; }
+#loginView .home-panel {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: minmax(280px, .82fr) minmax(390px, 1.05fr) minmax(230px, .72fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    "brand brand brand"
+    "leaders form decor";
+  gap: clamp(16px, 2.2vw, 28px);
+  min-height: calc(100svh - 72px);
+  padding: clamp(20px, 3vw, 38px);
+  overflow: hidden;
+  border: 1px solid rgba(199, 220, 244, .85);
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 4% 6%, rgba(105,218,216,.26) 0 8rem, transparent 8.15rem),
+    radial-gradient(circle at 95% 8%, rgba(113,190,255,.25) 0 9rem, transparent 9.2rem),
+    radial-gradient(circle at 12% 94%, rgba(105,223,164,.24) 0 7.5rem, transparent 7.7rem),
+    radial-gradient(circle at 82% 96%, rgba(255,211,119,.28) 0 9rem, transparent 9.2rem),
+    linear-gradient(145deg, rgba(251,253,255,.98), rgba(237,247,255,.97));
+  box-shadow: 0 26px 70px rgba(40, 85, 140, .16);
+}
+
+#loginView .home-panel > * { direction: rtl; }
+#loginView .home-brand {
+  grid-area: brand;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 130px;
+  text-align: center;
+}
+#loginView .home-brain {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 50px;
+  margin-bottom: 1px;
+  color: #ef4e61;
+  font-size: 43px;
+  filter: saturate(1.08) drop-shadow(0 5px 7px rgba(226,65,85,.18));
+}
+#loginView .home-title {
+  margin: 0;
+  color: #0b4594;
+  font-family: var(--home-title-font);
+  font-size: clamp(2.25rem, 4.5vw, 4.15rem);
+  font-weight: 900;
+  line-height: 1.12;
+  letter-spacing: -.035em;
+}
+#loginView .home-brand > p {
+  margin: 8px 0 0;
+  color: #5c7392;
+  font-size: clamp(.87rem, 1.5vw, 1.05rem);
+  font-weight: 700;
+}
+#loginView .content-status { margin-top: 7px; }
+
+#loginView .student-form,
+#loginView .home-leaderboard {
+  align-self: center;
+  border: 1px solid #dce8f7;
+  border-radius: 25px;
+  background: rgba(255,255,255,.93);
+  box-shadow: 0 15px 38px rgba(49,90,144,.13);
+}
+#loginView .student-form {
+  grid-area: form;
+  display: grid;
+  align-content: center;
+  gap: 13px;
+  min-height: 420px;
+  padding: clamp(22px, 3vw, 34px);
+  overflow: visible;
+}
+#loginView .home-field {
+  position: relative;
+  display: block;
+}
+#loginView .home-field-icon {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: 17px;
+  width: 30px;
+  color: #617da4;
+  font-size: 20px;
+  line-height: 1;
+  text-align: center;
+  transform: translateY(-50%);
+}
+#loginView .home-users-icon { font-size: 11px; letter-spacing: -5px; }
+#loginView .home-school-icon { font-size: 18px; }
+#loginView input[type="text"] {
+  min-height: 59px;
+  padding: 12px 58px 12px 17px;
+  border: 1px solid #e1eaf5;
+  border-radius: 15px;
+  color: #1c355b;
+  background: #fbfdff;
+  box-shadow: 0 6px 13px rgba(46,83,132,.08);
+  font-size: 16px;
+  font-weight: 700;
+}
+#loginView input[type="text"]::placeholder { color: #71829a; opacity: 1; }
+#loginView input[type="text"]:focus {
+  border-color: #199ce8;
+  box-shadow: 0 0 0 4px rgba(25,156,232,.13), 0 7px 17px rgba(46,83,132,.09);
+}
+#loginView #gameModeField { margin: 2px 0 0; }
+#loginView .mode-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+#loginView .mode-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 92px;
+  padding: 14px 12px;
+  border: 0;
+  border-radius: 16px;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.48), 0 9px 18px rgba(21,83,151,.2);
+  transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+}
+#loginView .mode-card:hover,
+#loginView .mode-card:focus-within { transform: translateY(-2px); filter: brightness(1.04); }
+#loginView .mode-card:has(input:checked) { outline: 3px solid rgba(255,255,255,.92); outline-offset: -6px; }
+#loginView .mode-solo { background: linear-gradient(180deg, #24b8f5, #0787e4); }
+#loginView .mode-group { background: linear-gradient(180deg, #4bd96a, #08a944); }
+#loginView .mode-card input { position: absolute; opacity: 0; pointer-events: none; }
+#loginView .mode-icon { font-size: 34px; line-height: 1; filter: grayscale(1) brightness(0) invert(1); }
+#loginView .mode-card strong { margin: 0; color: #fff; font-size: 1.14rem; }
+#loginView .mode-card small { display: none; }
+#loginView .form-message { min-height: 18px; font-size: .82rem; text-align: center; }
+#loginView .home-continue { min-height: 48px; border-radius: 14px; background: #0b4594; }
+#loginView .student-form:has(#gameModeField:not([hidden])) .home-continue { display: none; }
+
+#loginView .home-leaderboard {
+  grid-area: leaders;
+  align-self: stretch;
+  padding: 22px 22px 18px;
+  overflow: hidden;
+}
+#loginView .home-leaderboard h2 {
+  margin: 0;
+  color: #123f83;
+  font-size: clamp(1.25rem, 2vw, 1.55rem);
+  text-align: center;
+}
+#loginView .leaderboard-lesson {
+  margin: 6px 0 13px;
+  color: #7688a2;
+  font-size: .72rem;
+  font-weight: 700;
+  text-align: center;
+}
+#loginView .leaderboard-list {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: leaderboard;
+}
+#loginView .leaderboard-list li {
+  counter-increment: leaderboard;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 31px;
+  padding: 4px 7px;
+  border-radius: 9px;
+  color: #143c76;
+  background: linear-gradient(90deg, rgba(236,244,255,.82), rgba(250,252,255,.9));
+  font-size: .86rem;
+  font-weight: 800;
+}
+#loginView .leaderboard-list li::before {
+  content: counter(leaderboard);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #12407e;
+  background: #d9e3f0;
+  font-size: .78rem;
+}
+#loginView .leaderboard-list li:nth-child(1)::before { background: #ffd642; }
+#loginView .leaderboard-list li:nth-child(2)::before { background: #dce2ea; }
+#loginView .leaderboard-list li:nth-child(3)::before { background: #efa65d; }
+#loginView .leaderboard-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#loginView .leaderboard-score { color: #0a4a96; font-variant-numeric: tabular-nums; }
+#loginView .leaderboard-empty {
+  grid-template-columns: 1fr !important;
+  min-height: 68px !important;
+  color: #75869e !important;
+  text-align: center;
+}
+#loginView .leaderboard-empty::before { display: none !important; }
+
+#loginView .home-science-art {
+  grid-area: decor;
+  position: relative;
+  align-self: stretch;
+  min-height: 420px;
+}
+#loginView .science-tile {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 108px;
+  height: 108px;
+  border-radius: 22px;
+  font-size: 52px;
+  box-shadow: 0 17px 30px rgba(50,86,135,.15);
+}
+#loginView .tile-leaf { top: 14px; right: 19px; background: #c5f4dc; transform: rotate(-12deg); }
+#loginView .tile-paw { top: 116px; left: 8px; background: #fff0bd; transform: rotate(9deg); }
+#loginView .tile-atom { top: 224px; right: 24px; color: #2375e4; background: #dfd4ff; transform: rotate(-8deg); }
+#loginView .tile-globe { top: 305px; left: 8px; background: #d0ecff; transform: rotate(10deg); }
+#loginView .home-science-art p {
+  position: absolute;
+  right: 9px;
+  bottom: 0;
+  margin: 0;
+  color: #36506f;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+#loginView .home-science-art p::after {
+  content: "";
+  display: block;
+  width: 48px;
+  height: 4px;
+  margin-top: 10px;
+  border-radius: 99px;
+  background: #42c985;
+}
+#loginView footer { display: none; }
+
+@media (max-width: 900px) {
+  body.home-active .app-shell { width: min(680px, calc(100% - 18px)); }
+  #loginView { height: auto; min-height: 100svh; padding: 8px 0; overflow: visible; }
+  #loginView .home-panel {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    grid-template-areas: "brand" "form" "leaders";
+    gap: 10px;
+    height: auto;
+    min-height: calc(100svh - 16px);
+    padding: 13px;
+    border-radius: 24px;
+    overflow: visible;
+  }
+  #loginView .home-brand { min-height: 84px; }
+  #loginView .home-brain { width: 42px; height: 37px; font-size: 31px; }
+  #loginView .home-title { font-size: clamp(1.65rem, 7vw, 2.25rem); }
+  #loginView .home-brand > p { margin-top: 3px; font-size: .72rem; }
+  #loginView .student-form {
+    min-height: 0;
+    gap: 8px;
+    padding: 13px;
+    border-radius: 18px;
+  }
+  #loginView input[type="text"] { min-height: 43px; padding: 7px 47px 7px 12px; border-radius: 12px; }
+  #loginView .home-field-icon { right: 12px; width: 26px; font-size: 17px; }
+  #loginView .home-users-icon { font-size: 9px; }
+  #loginView .mode-grid { gap: 8px; }
+  #loginView .mode-card { min-height: 57px; gap: 7px; padding: 8px; border-radius: 12px; }
+  #loginView .mode-icon { font-size: 23px; }
+  #loginView .mode-card strong { font-size: .88rem; }
+  #loginView .form-message { min-height: 12px; font-size: .68rem; line-height: 1.2; }
+  #loginView .home-continue { min-height: 40px; padding: 7px; }
+  #loginView .home-leaderboard { padding: 12px 13px; border-radius: 18px; }
+  #loginView .home-leaderboard h2 { font-size: 1.08rem; }
+  #loginView .leaderboard-lesson { margin: 2px 0 7px; font-size: .63rem; }
+  #loginView .leaderboard-list { grid-template-columns: 1fr; gap: 2px; }
+  #loginView .leaderboard-list li { grid-template-columns: 24px minmax(0, 1fr) auto; min-height: 26px; padding: 2px 5px; font-size: .7rem; }
+  #loginView .leaderboard-list li::before { width: 21px; height: 21px; font-size: .66rem; }
+  #loginView .leaderboard-empty { grid-column: 1 / -1; min-height: 42px !important; }
+  #loginView .home-science-art { display: none; }
+}
+
+@media (max-width: 420px) {
+  #loginView .home-panel { padding: 9px; gap: 7px; }
+  #loginView .home-brand { min-height: 72px; }
+  #loginView .home-brain { height: 30px; margin: 0; font-size: 27px; }
+  #loginView .home-title { font-size: 1.48rem; }
+  #loginView .home-brand > p { font-size: .62rem; }
+  #loginView .student-form { gap: 6px; padding: 9px; }
+  #loginView input[type="text"] { min-height: 39px; }
+  #loginView .mode-card { min-height: 50px; }
+  #loginView .home-leaderboard { padding: 9px; }
+  #loginView .leaderboard-list li { font-size: .64rem; }
 }
