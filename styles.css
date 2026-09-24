@@ -1054,7 +1054,10 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   .loader-spinner { animation: none; }
 }
 
-/* الصفحة الرئيسية المستقلة – الإصدار 0.7.44 */
+/* الصفحة الرئيسية المستقلة – الإصدار 0.7.45 */
+body.home-active {
+  background: linear-gradient(145deg, #fbfdff, #edf7ff) !important;
+}
 .visually-hidden {
   position: absolute !important;
   width: 1px !important;

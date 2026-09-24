@@ -8,9 +8,11 @@ const DEVICE_STORAGE_KEY = 'plants_device_id';
 const RUN_STORAGE_PREFIX = 'plants_lesson_run_v1_';
 const RUN_RESUME_KEY = 'plants_active_lesson_run_v1';
 const VIEW_STORAGE_KEY = 'plants_current_view_v1';
+const LEADERBOARD_CACHE_PREFIX = 'plants_leaderboard_v1_';
+const LEADERBOARD_CACHE_TTL = 2 * 60 * 1000;
 const params = new URLSearchParams(window.location.search);
 const DIRECT_LESSON_ID = String(params.get('lesson') || params.get('lesson_id') || '').trim();
-const HOME_SCIENCE_ICONS = Array.from({ length: 24 }, (_, index) => `assets/home-science-${String(index + 1).padStart(2, '0')}.png`);
+const HOME_SCIENCE_ICONS = Array.from({ length: 24 }, (_, index) => `assets/home-science-${String(index + 1).padStart(2, '0')}.webp`);
 
 const state = {
   content: null,
@@ -18,6 +20,8 @@ const state = {
   selectedLessonId: DIRECT_LESSON_ID || DEFAULT_LESSON_ID,
   loadPromise: null,
   leaderboardRequest: 0,
+  leaderboardLoads: new Map(),
+  homeScienceRendered: false,
   pendingLessonId: '',
   usingCache: false,
   appearance: {
@@ -85,12 +89,16 @@ function showView(id) {
 }
 
 function renderHomeScienceIcons() {
+  if (state.homeScienceRendered || !window.matchMedia('(min-width: 901px)').matches) return;
+  state.homeScienceRendered = true;
   const icons = shuffle(HOME_SCIENCE_ICONS).slice(0, 4);
   document.querySelectorAll('#loginView .science-tile img').forEach((image, index) => {
     const tile = image.closest('.science-tile');
     const fallbackColors = ['#d8e8ff', '#fff0be', '#dcd4ff', '#cff4df'];
     if (tile) tile.style.setProperty('--tile-color', fallbackColors[index % fallbackColors.length]);
     image.onload = () => applyScienceTileColor(image);
+    image.loading = 'lazy';
+    image.decoding = 'async';
     image.src = icons[index] || HOME_SCIENCE_ICONS[index];
   });
 }
@@ -584,29 +592,67 @@ function renderLeaderboard(rows = [], lessonName = '') {
     </li>`).join('');
 }
 
-async function loadLeaderboard(lessonId = state.selectedLessonId) {
-  const requestId = ++state.leaderboardRequest;
+function leaderboardCacheKey(lessonId) {
+  return `${LEADERBOARD_CACHE_PREFIX}${lessonId}`;
+}
+
+function readCachedLeaderboard(lessonId) {
+  try {
+    const cached = JSON.parse(localStorage.getItem(leaderboardCacheKey(lessonId)) || 'null');
+    if (!cached || !Array.isArray(cached.rows)) return null;
+    return cached;
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveCachedLeaderboard(lessonId, rows) {
+  try {
+    localStorage.setItem(leaderboardCacheKey(lessonId), JSON.stringify({ saved_at: Date.now(), rows }));
+  } catch (_) {}
+}
+
+async function loadLeaderboard(lessonId = state.selectedLessonId, forceRefresh = false) {
+  lessonId = String(lessonId || DEFAULT_LESSON_ID);
   const list = $('#leaderboardList');
   if (!list) return;
-  list.innerHTML = '<li class="leaderboard-empty">جارٍ تحميل النتائج…</li>';
-  const lesson = (state.content?.lessons || []).find((item) => String(item.lesson_id) === String(lessonId));
+  const lesson = (state.content?.lessons || []).find((item) => String(item.lesson_id) === lessonId);
+  const cached = readCachedLeaderboard(lessonId);
+  if (cached) renderLeaderboard(cached.rows, lesson?.lesson_name || '');
+  else list.innerHTML = '<li class="leaderboard-empty">جارٍ تحميل النتائج…</li>';
+
+  const cacheIsFresh = cached && Date.now() - Number(cached.saved_at || 0) < LEADERBOARD_CACHE_TTL;
+  if (!forceRefresh && cacheIsFresh) return cached.rows;
+  if (state.leaderboardLoads.has(lessonId)) return state.leaderboardLoads.get(lessonId);
+
+  const requestId = ++state.leaderboardRequest;
   let timeoutId = 0;
-  try {
-    const url = `${API_URL}?action=leaderboard&lesson_id=${encodeURIComponent(lessonId)}&limit=10&_=${Date.now()}`;
-    const controller = new AbortController();
-    timeoutId = window.setTimeout(() => controller.abort(), 12000);
-    const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
-    const payload = await response.json();
-    if (!response.ok || !payload.ok) throw new Error(payload.error || 'تعذر تحميل النتائج.');
-    if (requestId !== state.leaderboardRequest) return;
-    renderLeaderboard(Array.isArray(payload.data?.rows) ? payload.data.rows : [], lesson?.lesson_name || '');
-  } catch (_) {
-    if (requestId !== state.leaderboardRequest) return;
-    $('#leaderboardLesson').textContent = lesson?.lesson_name || 'أفضل النتائج';
-    list.innerHTML = '<li class="leaderboard-empty">ستظهر النتائج بعد تحديث خدمة البيانات.</li>';
-  } finally {
-    if (timeoutId) window.clearTimeout(timeoutId);
-  }
+  const loadPromise = (async () => {
+    try {
+      const url = `${API_URL}?action=leaderboard&lesson_id=${encodeURIComponent(lessonId)}&limit=10&_=${Date.now()}`;
+      const controller = new AbortController();
+      timeoutId = window.setTimeout(() => controller.abort(), 12000);
+      const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error(payload.error || 'تعذر تحميل النتائج.');
+      const rows = Array.isArray(payload.data?.rows) ? payload.data.rows : [];
+      saveCachedLeaderboard(lessonId, rows);
+      if (requestId !== state.leaderboardRequest) return rows;
+      renderLeaderboard(rows, lesson?.lesson_name || '');
+      return rows;
+    } catch (_) {
+      if (requestId !== state.leaderboardRequest) return;
+      if (!cached) {
+        $('#leaderboardLesson').textContent = lesson?.lesson_name || 'أفضل النتائج';
+        list.innerHTML = '<li class="leaderboard-empty">ستظهر النتائج بعد تحديث خدمة البيانات.</li>';
+      }
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      state.leaderboardLoads.delete(lessonId);
+    }
+  })();
+  state.leaderboardLoads.set(lessonId, loadPromise);
+  return loadPromise;
 }
 
 function applyContent(data, lessonId, fromCache = false) {
@@ -1785,6 +1831,7 @@ async function startApplication() {
   if (!canResume) {
     showView('loginView');
     applyGameModeAvailability();
+    loadLeaderboard(state.selectedLessonId).catch(() => {});
     beginInitialLoad().catch((error) => {
       setContentError(error.message || 'تعذر تحميل الدروس. تحقق من الإنترنت ثم حاول مجددًا.');
     });
