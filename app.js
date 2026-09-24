@@ -2,7 +2,7 @@
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyfeSB3gvBHTfHuCwozfPG-GUflo6AmJmer8HJSUStmY_IdCutZWJdnHTsVfIfdpHfc/exec';
 const DEFAULT_LESSON_ID = 'PLANTS_01';
-const CACHE_PREFIX = 'plants_bootstrap_v3_';
+const CACHE_PREFIX = 'plants_bootstrap_v4_';
 const PLAYER_STORAGE_KEY = 'plants_player';
 const DEVICE_STORAGE_KEY = 'plants_device_id';
 const RUN_STORAGE_PREFIX = 'plants_lesson_run_v1_';
