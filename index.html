@@ -23,18 +23,18 @@
   <meta name="twitter:image" content="https://aalabbas3-commits.github.io/plants-memory-game/assets/game-share-card-v2.jpg">
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
-  <link rel="stylesheet" href="styles.css?v=0.7.41">
+  <link rel="stylesheet" href="styles.css?v=0.7.44">
 </head>
-<body class="booting" data-theme="THEME_05" data-display-mode="normal">
+<body class="home-active" data-theme="THEME_05" data-display-mode="normal">
   <main class="app-shell">
-    <section id="loadingView" class="screen centered" aria-live="polite">
+    <section id="loadingView" class="screen centered" aria-live="polite" hidden>
       <div class="loader-spinner" aria-hidden="true"></div>
       <h1>لعبة الذاكرة العلمية</h1>
       <p id="loadingMessage">جارٍ تجهيز الدرس…</p>
       <button id="retryButton" class="secondary-button" type="button" hidden>إعادة المحاولة</button>
     </section>
 
-    <section id="loginView" class="screen" hidden>
+    <section id="loginView" class="screen">
       <div class="greenhouse-panel home-panel">
         <header class="home-brand">
           <img class="home-logo" src="assets/home-logo.png" alt="" aria-hidden="true">
@@ -353,6 +353,6 @@
       </div>
     </form>
   </dialog>
-  <script src="app.js?v=0.7.41" defer></script>
+  <script src="app.js?v=0.7.44" defer></script>
 </body>
 </html>

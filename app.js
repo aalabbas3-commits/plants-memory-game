@@ -7,6 +7,7 @@ const PLAYER_STORAGE_KEY = 'plants_player';
 const DEVICE_STORAGE_KEY = 'plants_device_id';
 const RUN_STORAGE_PREFIX = 'plants_lesson_run_v1_';
 const RUN_RESUME_KEY = 'plants_active_lesson_run_v1';
+const VIEW_STORAGE_KEY = 'plants_current_view_v1';
 const params = new URLSearchParams(window.location.search);
 const DIRECT_LESSON_ID = String(params.get('lesson') || params.get('lesson_id') || '').trim();
 const HOME_SCIENCE_ICONS = Array.from({ length: 24 }, (_, index) => `assets/home-science-${String(index + 1).padStart(2, '0')}.png`);
@@ -75,6 +76,7 @@ function showView(id) {
   });
   document.body.classList.toggle('game-active', id === 'gameView');
   document.body.classList.toggle('home-active', id === 'loginView');
+  try { sessionStorage.setItem(VIEW_STORAGE_KEY, id); } catch (_) {}
   window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   if (id === 'loginView') {
     renderHomeScienceIcons();
@@ -1768,7 +1770,10 @@ if (window.visualViewport) {
 
 const restoredPlayer = restorePlayer();
 document.querySelector('input[name="game_mode"]:checked')?.dispatchEvent(new Event('change'));
-const resumeLessonId = restoredPlayer ? resumableLessonId() : '';
+let storedViewId = '';
+try { storedViewId = sessionStorage.getItem(VIEW_STORAGE_KEY) || ''; } catch (_) {}
+const resumableViews = new Set(['readyView', 'gameView', 'resultView']);
+const resumeLessonId = restoredPlayer && resumableViews.has(storedViewId) ? resumableLessonId() : '';
 
 async function startApplication() {
   const canResume = resumeLessonId && (!DIRECT_LESSON_ID || DIRECT_LESSON_ID === resumeLessonId);
@@ -1778,7 +1783,6 @@ async function startApplication() {
   setContentLoading();
 
   if (!canResume) {
-    document.body.classList.remove('booting');
     showView('loginView');
     applyGameModeAvailability();
     beginInitialLoad().catch((error) => {
@@ -1792,7 +1796,6 @@ async function startApplication() {
   showView('loadingView');
 
   const revealLoadedApplication = async () => {
-    document.body.classList.remove('booting');
     if (canResume) {
       await selectLesson(resumeLessonId);
       if (isGroupMode()) {

@@ -1054,7 +1054,7 @@ body[data-display-mode="3d"] .memory-card.is-flipped:hover .memory-card-inner, b
   .loader-spinner { animation: none; }
 }
 
-/* الصفحة الرئيسية المستقلة – الإصدار 0.7.41 */
+/* الصفحة الرئيسية المستقلة – الإصدار 0.7.44 */
 .visually-hidden {
   position: absolute !important;
   width: 1px !important;
@@ -1081,6 +1081,7 @@ body.home-active {
 body.home-active .app-shell { width: 100%; max-width: none; }
 #loginView { min-height: 100svh; padding: 0; }
 #loginView .home-panel {
+  position: relative;
   direction: ltr;
   display: grid;
   grid-template-columns: repeat(2, minmax(280px, 1fr)) minmax(220px, .82fr);
@@ -1361,6 +1362,25 @@ body.home-active .app-shell { width: 100%; max-width: none; }
 #loginView .tile-three { transform: rotate(7deg) translateY(-5px); }
 #loginView .tile-four { transform: rotate(-7deg) translateY(11px); }
 #loginView footer { display: none; }
+
+@media (min-width: 901px) {
+  #loginView .home-logo {
+    width: clamp(135px, 11vw, 180px);
+    height: clamp(90px, 8vw, 125px);
+  }
+  #loginView .home-science-art {
+    transform: translateX(clamp(-48px, -2.5vw, -20px));
+  }
+  #loginView .home-tagline {
+    position: absolute;
+    right: max(24px, calc(18% - 135px));
+    bottom: clamp(42px, 5vh, 64px);
+    width: 270px;
+    margin: 0;
+    transform: none;
+  }
+  #loginView .home-tagline img { width: 100%; max-width: none; }
+}
 
 @media (max-width: 900px) {
   body.home-active .app-shell { width: min(680px, calc(100% - 18px)); }
