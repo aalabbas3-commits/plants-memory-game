@@ -1190,7 +1190,7 @@ function openQuestionForMatch(card) {
   $('#submitAnswerButton').disabled = true;
   $('#submitAnswerButton').textContent = 'اعتماد الإجابة';
   $('#questionDialog').showModal();
-  const seconds = Math.max(5, Number(question.time_seconds || state.game.level?.question_time_seconds || 30));
+  const seconds = Math.max(5, Number(state.game.level?.question_time_seconds || question.time_seconds || 30));
   startQuestionTimer(seconds);
 }
 
@@ -1211,7 +1211,7 @@ function beginStealAttempt() {
   $('#questionFeedback').className = 'question-feedback';
   $('#submitAnswerButton').disabled = true;
   $('#submitAnswerButton').textContent = 'اعتماد الإجابة';
-  const seconds = Math.max(5, Number(state.game.currentQuestion?.time_seconds || state.game.level?.question_time_seconds || 30));
+  const seconds = Math.max(5, Number(state.game.level?.question_time_seconds || state.game.currentQuestion?.time_seconds || 30));
   startQuestionTimer(seconds);
   renderTeamScoreboard();
 }
