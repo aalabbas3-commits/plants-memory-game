@@ -23,7 +23,7 @@
   <meta name="twitter:image" content="https://aalabbas3-commits.github.io/plants-memory-game/assets/game-share-card-v2.jpg">
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
-  <link rel="stylesheet" href="styles.css?v=1.0.1">
+  <link rel="stylesheet" href="styles.css?v=1.1.0">
 </head>
 <body class="home-active" data-theme="THEME_05" data-display-mode="normal">
   <main class="app-shell">
@@ -102,6 +102,10 @@
         <button id="backFromLessonsButton" class="secondary-button" type="button">العودة إلى البيانات</button>
       </header>
       <div id="lessonGrid" class="lesson-grid" aria-live="polite"></div>
+      <div id="lessonAccessLegend" class="lesson-access-legend" hidden>
+        <span><span aria-hidden="true">🔒</span> درس مغلق</span>
+        <span><span aria-hidden="true">🔑</span> يتطلب كود دخول</span>
+      </div>
     </section>
 
     <section id="groupSetupView" class="screen" hidden>
@@ -326,6 +330,23 @@
     </section>
   </dialog>
 
+  <dialog id="lessonAccessDialog" class="lesson-access-dialog" aria-labelledby="lessonAccessTitle">
+    <section class="lesson-access-panel">
+      <div class="lesson-access-symbol" aria-hidden="true">🔐</div>
+      <h2 id="lessonAccessTitle">الدخول إلى الدرس</h2>
+      <p id="lessonAccessMessage">هذا الدرس غير متاح حاليًا.</p>
+      <div id="lessonCodeFields" class="lesson-code-fields" hidden>
+        <label for="lessonCodeInput">كود الدخول</label>
+        <input id="lessonCodeInput" type="text" maxlength="80" autocomplete="off" inputmode="text" placeholder="اكتب الكود">
+      </div>
+      <p id="lessonCodeStatus" class="lesson-code-status" role="status" aria-live="polite"></p>
+      <div class="lesson-access-actions">
+        <button id="lessonCodeSubmit" class="primary-button" type="button" hidden>دخول</button>
+        <button id="closeLessonAccessButton" class="secondary-button" type="button">إغلاق</button>
+      </div>
+    </section>
+  </dialog>
+
   <dialog id="feedbackDialog" class="feedback-dialog" aria-labelledby="feedbackTitle">
     <form id="feedbackForm" class="feedback-panel">
       <header class="feedback-header">
@@ -353,6 +374,6 @@
       </div>
     </form>
   </dialog>
-  <script src="app.js?v=1.0.1" defer></script>
+  <script src="app.js?v=1.1.0" defer></script>
 </body>
 </html>

@@ -1443,3 +1443,69 @@ body.home-active .app-shell { width: 100%; max-width: none; }
   #loginView .home-leaderboard { padding: 9px; }
   #loginView .leaderboard-list li { font-size: .64rem; }
 }
+
+
+/* حالات الدروس – الإصدار 1.1.0 */
+.lesson-choice.is-locked {
+  opacity: .78;
+  border-style: dashed;
+  cursor: pointer;
+}
+.lesson-choice.is-locked .lesson-choice-number {
+  background: #77838b;
+}
+.lesson-choice.is-coded {
+  border-color: #d5aa43;
+}
+.lesson-choice.is-coded .lesson-choice-number {
+  background: #b98718;
+}
+.lesson-access-icon {
+  margin-inline-start: .35rem;
+  font-size: .95em;
+}
+.lesson-access-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 18px;
+  margin: 18px auto 0;
+  padding: 10px 16px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,255,255,.86);
+  color: var(--muted);
+  font-weight: 800;
+  font-size: .9rem;
+}
+.lesson-access-dialog {
+  width: min(430px, calc(100% - 28px));
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+}
+.lesson-access-dialog::backdrop {
+  background: rgba(5, 35, 28, .55);
+  backdrop-filter: blur(3px);
+}
+.lesson-access-panel {
+  padding: 28px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(5, 35, 28, .25);
+  text-align: center;
+}
+.lesson-access-symbol { font-size: 2.3rem; }
+.lesson-access-panel h2 { margin: 8px 0; color: var(--deep); }
+.lesson-access-panel p { color: var(--muted); line-height: 1.7; }
+.lesson-code-fields { margin-top: 18px; text-align: right; }
+.lesson-code-fields label { display: block; margin-bottom: 7px; font-weight: 900; color: var(--deep); }
+.lesson-code-fields input { width: 100%; }
+.lesson-code-status { min-height: 1.5em; margin: 10px 0 0; color: #a83b31 !important; font-weight: 800; }
+.lesson-access-actions { display: flex; justify-content: center; gap: 10px; margin-top: 18px; }
+@media (max-width: 680px) {
+  .lesson-access-legend { width: 100%; justify-content: flex-start; }
+}

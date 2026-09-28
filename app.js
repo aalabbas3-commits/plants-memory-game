@@ -24,6 +24,7 @@ const state = {
   homeScienceRendered: false,
   pendingLessonId: '',
   usingCache: false,
+  verifiedLessonCodes: new Set(),
   appearance: {
     themeId: 'THEME_05',
     displayModeId: 'normal',
@@ -476,8 +477,13 @@ function levelKey(level, index = -1) {
   return String(id === undefined || id === null || id === '' ? index : id);
 }
 
+function lessonStatus(lesson) {
+  const status = String(lesson?.lesson_status || 'available').trim().toLowerCase();
+  return ['available', 'locked', 'code', 'hidden'].includes(status) ? status : 'available';
+}
+
 function getActiveLessons() {
-  return (state.content?.lessons || []).filter((lesson) => isActive(lesson.active));
+  return (state.content?.lessons || []).filter((lesson) => isActive(lesson.active) && lessonStatus(lesson) !== 'hidden');
 }
 
 function lessonAllowsGroupMode(lesson) {
@@ -737,16 +743,27 @@ function renderLessonPicker() {
   $('#lessonGrid').innerHTML = lessons.map((lesson, index) => {
     const lessonId = String(lesson.lesson_id || '');
     const isCurrent = lessonId === state.selectedLessonId;
+    const status = lessonStatus(lesson);
+    const locked = status === 'locked';
+    const coded = status === 'code';
+    const icon = locked ? '🔒' : coded ? '🔑' : '';
+    const title = locked ? (lesson.locked_message || 'قريبًا') : coded ? 'يتطلب كود دخول' : 'متاح';
+    const description = locked
+      ? (lesson.locked_message || 'قريبًا')
+      : coded
+        ? 'يتطلب كود دخول'
+        : (lesson.description || lesson.subject || 'اضغط لاختيار هذا الدرس');
     return `
-      <button class="lesson-choice${isCurrent ? ' current' : ''}" type="button" data-lesson-id="${escapeHtml(lessonId)}">
-        <span class="lesson-choice-number">${index + 1}</span>
+      <button class="lesson-choice${isCurrent ? ' current' : ''}${locked ? ' is-locked' : ''}${coded ? ' is-coded' : ''}" type="button" data-lesson-id="${escapeHtml(lessonId)}" data-lesson-status="${escapeHtml(status)}" title="${escapeHtml(title)}">
+        <span class="lesson-choice-number">${icon || (index + 1)}</span>
         <span class="lesson-choice-copy">
-          <strong>${escapeHtml(lesson.lesson_name || `الدرس ${index + 1}`)}</strong>
-          <small>${escapeHtml(lesson.description || lesson.subject || 'اضغط لاختيار هذا الدرس')}</small>
+          <strong>${escapeHtml(lesson.lesson_name || `الدرس ${index + 1}`)}${icon ? ` <span class="lesson-access-icon" aria-hidden="true">${icon}</span>` : ''}</strong>
+          <small>${escapeHtml(description)}</small>
         </span>
-        <span class="lesson-choice-arrow" aria-hidden="true">←</span>
+        <span class="lesson-choice-arrow" aria-hidden="true">${locked ? '—' : '←'}</span>
       </button>`;
   }).join('');
+  $('#lessonAccessLegend').hidden = !lessons.some((lesson) => ['locked', 'code'].includes(lessonStatus(lesson)));
   showView('lessonView');
 }
 
@@ -757,7 +774,58 @@ function showLoading(message, lessonId) {
   showView('loadingView');
 }
 
+function lessonById(lessonId) {
+  return (state.content?.lessons || []).find((lesson) => String(lesson.lesson_id) === String(lessonId));
+}
+
+function showLockedLesson(lesson) {
+  $('#lessonAccessTitle').textContent = lesson?.lesson_name || 'الدرس';
+  $('#lessonAccessMessage').textContent = lesson?.locked_message || 'قريبًا';
+  $('#lessonCodeFields').hidden = true;
+  $('#lessonCodeInput').value = '';
+  $('#lessonCodeStatus').textContent = '';
+  $('#lessonCodeSubmit').hidden = true;
+  $('#lessonAccessDialog').showModal();
+}
+
+function requestLessonCode(lesson) {
+  $('#lessonAccessTitle').textContent = lesson?.lesson_name || 'الدخول إلى الدرس';
+  $('#lessonAccessMessage').textContent = 'هذا الدرس يتطلب كود دخول.';
+  $('#lessonCodeFields').hidden = false;
+  $('#lessonCodeInput').value = '';
+  $('#lessonCodeStatus').textContent = '';
+  $('#lessonCodeSubmit').hidden = false;
+  $('#lessonAccessDialog').dataset.lessonId = String(lesson.lesson_id || '');
+  $('#lessonAccessDialog').showModal();
+  window.setTimeout(() => $('#lessonCodeInput').focus(), 50);
+}
+
+async function verifyLessonAccessCode(lessonId, code) {
+  const url = `${API_URL}?action=verify_lesson_code&lesson_id=${encodeURIComponent(lessonId)}&code=${encodeURIComponent(code)}&_=${Date.now()}`;
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error('تعذر التحقق من الكود.');
+  const payload = await response.json();
+  if (!payload.ok || !payload.data) throw new Error(payload.error || 'تعذر التحقق من الكود.');
+  return payload.data;
+}
+
+async function guardLessonAccess(lesson) {
+  const status = lessonStatus(lesson);
+  if (status === 'hidden') return false;
+  if (status === 'locked') {
+    showLockedLesson(lesson);
+    return false;
+  }
+  if (status === 'code' && !state.verifiedLessonCodes.has(String(lesson.lesson_id))) {
+    requestLessonCode(lesson);
+    return false;
+  }
+  return true;
+}
+
 async function selectLesson(lessonId) {
+  const listedLesson = lessonById(lessonId);
+  if (listedLesson && !(await guardLessonAccess(listedLesson))) return;
   if (lessonId === state.selectedLessonId && state.content) {
     enforceSelectedLessonMode();
     proceedAfterLessonSelection();
@@ -1751,6 +1819,39 @@ $('#backFromGroupButton').addEventListener('click', () => {
 $('#lessonGrid').addEventListener('click', (event) => {
   const button = event.target.closest('[data-lesson-id]');
   if (button) selectLesson(button.dataset.lessonId);
+});
+$('#closeLessonAccessButton').addEventListener('click', () => $('#lessonAccessDialog').close());
+$('#lessonCodeSubmit').addEventListener('click', async () => {
+  const dialog = $('#lessonAccessDialog');
+  const lessonId = String(dialog.dataset.lessonId || '');
+  const code = $('#lessonCodeInput').value.trim();
+  if (!code) {
+    $('#lessonCodeStatus').textContent = 'أدخل الكود أولًا.';
+    return;
+  }
+  const button = $('#lessonCodeSubmit');
+  button.disabled = true;
+  $('#lessonCodeStatus').textContent = 'جارٍ التحقق…';
+  try {
+    const result = await verifyLessonAccessCode(lessonId, code);
+    if (!result.valid) {
+      $('#lessonCodeStatus').textContent = result.message || 'الكود غير صحيح.';
+      return;
+    }
+    state.verifiedLessonCodes.add(lessonId);
+    dialog.close();
+    await selectLesson(lessonId);
+  } catch (error) {
+    $('#lessonCodeStatus').textContent = error.message || 'تعذر التحقق من الكود.';
+  } finally {
+    button.disabled = false;
+  }
+});
+$('#lessonCodeInput').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    $('#lessonCodeSubmit').click();
+  }
 });
 $('#levelsGrid').addEventListener('click', (event) => {
   const button = event.target.closest('[data-level-id]');
