@@ -1,5 +1,5 @@
 'use strict';
-// الإصدار: 1.0.3
+// الإصدار: 1.0.6
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyfeSB3gvBHTfHuCwozfPG-GUflo6AmJmer8HJSUStmY_IdCutZWJdnHTsVfIfdpHfc/exec';
 const DEFAULT_LESSON_ID = 'PLANTS_01';
@@ -11,6 +11,8 @@ const RUN_RESUME_KEY = 'plants_active_lesson_run_v1';
 const VIEW_STORAGE_KEY = 'plants_current_view_v1';
 const LEADERBOARD_CACHE_PREFIX = 'plants_leaderboard_v1_';
 const LEADERBOARD_CACHE_TTL = 2 * 60 * 1000;
+const CHALLENGE_CACHE_KEY = 'scientific_memory_challenges_v1';
+const CHALLENGE_CACHE_TTL = 2 * 60 * 1000;
 const params = new URLSearchParams(window.location.search);
 const DIRECT_LESSON_ID = String(params.get('lesson') || params.get('lesson_id') || '').trim();
 const HOME_SCIENCE_ICONS = Array.from({ length: 24 }, (_, index) => `assets/home-science-${String(index + 1).padStart(2, '0')}.webp`);
@@ -24,8 +26,15 @@ const state = {
   leaderboardLoads: new Map(),
   homeScienceRendered: false,
   pendingLessonId: '',
+  pendingChallengeId: '',
   usingCache: false,
   verifiedLessonCodes: new Set(),
+  verifiedChallengeCodes: new Map(),
+  challengeCatalog: { section_enabled: false, rows: [] },
+  challengeCatalogLoadedAt: 0,
+  challengeMode: false,
+  selectedChallenge: null,
+  lessonContent: null,
   pendingResume: null,
   resumeCheckedLessons: new Set(),
   appearance: {
@@ -79,7 +88,7 @@ const state = {
 const $ = (selector) => document.querySelector(selector);
 
 function showView(id) {
-  ['loadingView', 'loginView', 'lessonView', 'groupSetupView', 'readyView', 'gameView', 'resultView'].forEach((viewId) => {
+  ['loadingView', 'loginView', 'lessonView', 'challengeView', 'groupSetupView', 'readyView', 'gameView', 'resultView'].forEach((viewId) => {
     $(`#${viewId}`).hidden = viewId !== id;
   });
   document.body.classList.toggle('game-active', id === 'gameView');
@@ -225,6 +234,7 @@ function runStorageKey(lessonId = state.selectedLessonId) {
 }
 
 function saveLessonRun(run = state.lessonRun) {
+  if (state.challengeMode) return;
   const key = runStorageKey(run.lessonId);
   if (!key || !run.lessonId) return;
   try {
@@ -666,7 +676,10 @@ async function loadLeaderboard(lessonId = state.selectedLessonId, forceRefresh =
 }
 
 function applyContent(data, lessonId, fromCache = false) {
+  state.challengeMode = false;
+  state.selectedChallenge = null;
   state.content = data;
+  state.lessonContent = data;
   state.selectedLessonId = lessonId;
   state.usingCache = fromCache;
   initializeAppearance();
@@ -741,10 +754,223 @@ function restorePlayer() {
   }
 }
 
+
+function challengeStatus(challenge) {
+  const status = String(challenge?.challenge_status || 'available').trim().toLowerCase();
+  return ['available', 'locked', 'code', 'hidden'].includes(status) ? status : 'available';
+}
+
+function visibleChallenges() {
+  if (!state.challengeCatalog?.section_enabled) return [];
+  return (state.challengeCatalog.rows || []).filter((challenge) => isActive(challenge.active) && challengeStatus(challenge) !== 'hidden');
+}
+
+function challengeSectionVisible() {
+  return Boolean(state.challengeCatalog?.section_enabled) && visibleChallenges().length > 0;
+}
+
+function readChallengeCache() {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(CHALLENGE_CACHE_KEY) || 'null');
+    if (!cached || Date.now() - Number(cached.saved_at || 0) > CHALLENGE_CACHE_TTL) return null;
+    return cached.data || null;
+  } catch (_) { return null; }
+}
+
+function saveChallengeCache(data) {
+  try { sessionStorage.setItem(CHALLENGE_CACHE_KEY, JSON.stringify({ saved_at: Date.now(), data })); } catch (_) {}
+}
+
+async function fetchChallenges() {
+  const url = `${API_URL}?action=challenges&_=${Date.now()}`;
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+    if (!response.ok) throw new Error('تعذر تحميل التحديات.');
+    const payload = await response.json();
+    if (!payload.ok || !payload.data) throw new Error(payload.error || 'تعذر تحميل التحديات.');
+    return payload.data;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+async function ensureChallengesLoaded(force = false) {
+  if (!force && state.challengeCatalogLoadedAt && Date.now() - state.challengeCatalogLoadedAt < CHALLENGE_CACHE_TTL) return state.challengeCatalog;
+  const cached = !force ? readChallengeCache() : null;
+  if (cached) {
+    state.challengeCatalog = cached;
+    state.challengeCatalogLoadedAt = Date.now();
+  }
+  try {
+    const data = await fetchChallenges();
+    state.challengeCatalog = data;
+    state.challengeCatalogLoadedAt = Date.now();
+    saveChallengeCache(data);
+  } catch (_) {
+    if (!cached) state.challengeCatalog = { section_enabled: false, rows: [] };
+  }
+  return state.challengeCatalog;
+}
+
+function renderChallengePicker() {
+  const challenges = visibleChallenges();
+  $('#challengePlayerName').textContent = state.player?.student_name || '';
+  $('#challengeGrid').innerHTML = challenges.length ? challenges.map((challenge, index) => {
+    const id = String(challenge.challenge_id || '');
+    const status = challengeStatus(challenge);
+    const locked = status === 'locked';
+    const coded = status === 'code';
+    const icon = locked ? '🔒' : coded ? '🔑' : '⚡';
+    const description = locked ? (challenge.locked_message || 'قريبًا') : coded ? 'يتطلب كود دخول' : (challenge.description || `${challenge.lesson_ids?.length || 0} درس/دروس`);
+    return `<button class="lesson-choice challenge-choice${locked ? ' is-locked' : ''}${coded ? ' is-coded' : ''}" type="button" data-challenge-id="${escapeHtml(id)}" title="${escapeHtml(description)}">
+      <span class="lesson-choice-number">${icon}</span>
+      <span class="lesson-choice-copy"><strong>${escapeHtml(challenge.challenge_name || `التحدي ${index + 1}`)}${locked || coded ? ` <span class="lesson-access-icon" aria-hidden="true">${locked ? '🔒' : '🔑'}</span>` : ''}</strong><small>${escapeHtml(description)}</small></span>
+      <span class="lesson-choice-arrow" aria-hidden="true">${locked ? '—' : '←'}</span>
+    </button>`;
+  }).join('') : '<article class="level-card"><h3>لا توجد تحديات متاحة حاليًا</h3><p>ستظهر التحديات هنا عند تفعيلها.</p></article>';
+  $('#challengeAccessLegend').hidden = !challenges.some((challenge) => ['locked', 'code'].includes(challengeStatus(challenge)));
+  showView('challengeView');
+}
+
+function challengeById(challengeId) {
+  return visibleChallenges().find((challenge) => String(challenge.challenge_id) === String(challengeId));
+}
+
+function showLockedChallenge(challenge) {
+  $('#lessonAccessTitle').textContent = challenge?.challenge_name || 'التحدي';
+  $('#lessonAccessMessage').textContent = challenge?.locked_message || 'قريبًا';
+  $('#lessonCodeFields').hidden = true;
+  $('#lessonCodeInput').value = '';
+  $('#lessonCodeStatus').textContent = '';
+  $('#lessonCodeSubmit').hidden = true;
+  $('#lessonAccessDialog').dataset.accessKind = 'challenge';
+  $('#lessonAccessDialog').showModal();
+}
+
+function requestChallengeCode(challenge) {
+  const dialog = $('#lessonAccessDialog');
+  $('#lessonAccessTitle').textContent = challenge?.challenge_name || 'الدخول إلى التحدي';
+  $('#lessonAccessMessage').textContent = 'هذا التحدي يتطلب كود دخول.';
+  $('#lessonCodeFields').hidden = false;
+  $('#lessonCodeInput').value = '';
+  $('#lessonCodeStatus').textContent = '';
+  $('#lessonCodeSubmit').hidden = false;
+  dialog.dataset.accessKind = 'challenge';
+  dialog.dataset.challengeId = String(challenge.challenge_id || '');
+  dialog.dataset.lessonId = '';
+  dialog.showModal();
+  window.setTimeout(() => $('#lessonCodeInput').focus(), 50);
+}
+
+async function verifyChallengeAccessCode(challengeId, code) {
+  const url = `${API_URL}?action=verify_challenge_code&challenge_id=${encodeURIComponent(challengeId)}&code=${encodeURIComponent(code)}&_=${Date.now()}`;
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error('تعذر التحقق من الكود.');
+  const payload = await response.json();
+  if (!payload.ok || !payload.data) throw new Error(payload.error || 'تعذر التحقق من الكود.');
+  return payload.data;
+}
+
+async function fetchChallengeBootstrap(challengeId, code = '') {
+  const url = `${API_URL}?action=challenge_bootstrap&challenge_id=${encodeURIComponent(challengeId)}&code=${encodeURIComponent(code)}&_=${Date.now()}`;
+  const response = await fetch(url, { cache: 'no-store' });
+  if (!response.ok) throw new Error('تعذر تحميل التحدي.');
+  const payload = await response.json();
+  if (!payload.ok || !payload.data) throw new Error(payload.error || 'تعذر تحميل التحدي.');
+  return payload.data;
+}
+
+function challengeVirtualLesson(challenge) {
+  return {
+    lesson_id: `CHALLENGE__${challenge.challenge_id}`,
+    lesson_name: challenge.challenge_name || 'التحدي',
+    subject: 'التحدي',
+    group_mode_enabled: true,
+    appearance_panel_enabled: false,
+    sequential_levels_enabled: false,
+    lesson_status: 'available',
+    active: true
+  };
+}
+
+async function applyChallengeContent(data) {
+  const base = state.lessonContent || state.content;
+  const challenge = data.challenge || {};
+  const virtualLesson = challengeVirtualLesson(challenge);
+  const pseudoLevel = {
+    level_id: `CHALLENGE_LEVEL__${challenge.challenge_id}`,
+    lesson_id: virtualLesson.lesson_id,
+    level_name: challenge.challenge_name || 'التحدي',
+    card_count: Number(challenge.card_count || 6),
+    row_layout: challenge.row_layout || '',
+    min_difficulty: Number(challenge.min_difficulty || 1),
+    max_difficulty: Number(challenge.max_difficulty || 4),
+    question_time_seconds: Number(challenge.question_time_seconds || 30),
+    hints_allowed: false,
+    unlock_rule: 'always',
+    sort_order: 1,
+    active: true
+  };
+  state.challengeMode = true;
+  state.selectedChallenge = challenge;
+  state.selectedLessonId = virtualLesson.lesson_id;
+  state.content = {
+    api_version: data.api_version,
+    lesson_id: virtualLesson.lesson_id,
+    lessons: [...(base?.lessons || []), virtualLesson],
+    topics: [],
+    cards: data.cards || [],
+    questions: data.questions || [],
+    levels: [pseudoLevel],
+    themes: base?.themes || [],
+    display_modes: base?.display_modes || [],
+    settings: {}
+  };
+  resetLessonRun(state.selectedLessonId, true);
+  return proceedAfterLessonSelection();
+}
+
+async function selectChallenge(challengeId, verifiedCode = '') {
+  const challenge = challengeById(challengeId);
+  if (!challenge) return;
+  const status = challengeStatus(challenge);
+  if (status === 'hidden') return;
+  if (status === 'locked') { showLockedChallenge(challenge); return; }
+  const savedCode = state.verifiedChallengeCodes.get(String(challengeId)) || '';
+  if (status === 'code' && !savedCode && !verifiedCode) { requestChallengeCode(challenge); return; }
+  const accessCode = verifiedCode || savedCode;
+  state.pendingChallengeId = String(challengeId);
+  showLoading('جارٍ تجهيز التحدي…', '');
+  try {
+    const data = await fetchChallengeBootstrap(challengeId, accessCode);
+    if (!(data.cards || []).length) throw new Error('لا توجد بطاقات متاحة لهذا التحدي.');
+    if (!(data.questions || []).length) throw new Error('لا توجد أسئلة مؤهلة للتحدي بعد.');
+    state.pendingChallengeId = '';
+    await applyChallengeContent(data);
+  } catch (error) {
+    $('#loadingMessage').textContent = error.message || 'تعذر تجهيز التحدي.';
+    $('#retryButton').hidden = false;
+  }
+}
+
+function leaveChallengeToContentPicker() {
+  if (state.lessonContent) {
+    state.content = state.lessonContent;
+    state.selectedLessonId = DIRECT_LESSON_ID || DEFAULT_LESSON_ID;
+  }
+  state.challengeMode = false;
+  state.selectedChallenge = null;
+  state.game.roundToken += 1;
+  state.game.level = null;
+  renderLessonPicker();
+}
+
 function renderLessonPicker() {
   const lessons = getLessonsForSelectedMode();
   $('#lessonPlayerName').textContent = state.player?.student_name || '';
-  $('#lessonGrid').innerHTML = lessons.map((lesson, index) => {
+  const lessonCards = lessons.map((lesson, index) => {
     const lessonId = String(lesson.lesson_id || '');
     const isCurrent = lessonId === state.selectedLessonId;
     const status = lessonStatus(lesson);
@@ -767,7 +993,15 @@ function renderLessonPicker() {
         <span class="lesson-choice-arrow" aria-hidden="true">${locked ? '—' : '←'}</span>
       </button>`;
   }).join('');
+  const challengeCard = challengeSectionVisible() ? `
+    <button class="lesson-choice challenge-entry" type="button" data-open-challenges>
+      <span class="lesson-choice-number">⚡</span>
+      <span class="lesson-choice-copy"><strong>التحدي</strong><small>تحديات متنوعة من درس واحد أو عدة دروس</small></span>
+      <span class="lesson-choice-arrow" aria-hidden="true">←</span>
+    </button>` : '';
+  $('#lessonGrid').innerHTML = lessonCards + challengeCard;
   $('#lessonAccessLegend').hidden = !lessons.some((lesson) => ['locked', 'code'].includes(lessonStatus(lesson)));
+  $('#lessonPickerTitle').textContent = challengeSectionVisible() ? 'اختر الدرس أو التحدي' : 'اختر الدرس';
   showView('lessonView');
 }
 
@@ -789,6 +1023,7 @@ function showLockedLesson(lesson) {
   $('#lessonCodeInput').value = '';
   $('#lessonCodeStatus').textContent = '';
   $('#lessonCodeSubmit').hidden = true;
+  $('#lessonAccessDialog').dataset.accessKind = 'lesson';
   $('#lessonAccessDialog').showModal();
 }
 
@@ -799,6 +1034,8 @@ function requestLessonCode(lesson) {
   $('#lessonCodeInput').value = '';
   $('#lessonCodeStatus').textContent = '';
   $('#lessonCodeSubmit').hidden = false;
+  $('#lessonAccessDialog').dataset.accessKind = 'lesson';
+  $('#lessonAccessDialog').dataset.challengeId = '';
   $('#lessonAccessDialog').dataset.lessonId = String(lesson.lesson_id || '');
   $('#lessonAccessDialog').showModal();
   window.setTimeout(() => $('#lessonCodeInput').focus(), 50);
@@ -828,6 +1065,7 @@ async function guardLessonAccess(lesson) {
 }
 
 async function selectLesson(lessonId) {
+  state.pendingChallengeId = '';
   const listedLesson = lessonById(lessonId);
   if (listedLesson && !(await guardLessonAccess(listedLesson))) return;
   if (lessonId === state.selectedLessonId && state.content) {
@@ -874,6 +1112,7 @@ async function ensureContent() {
 
 async function continueAfterLogin() {
   await ensureContent();
+  await ensureChallengesLoaded();
   let lessons = getLessonsForSelectedMode();
   if (!lessons.length && isGroupMode()) {
     state.player.game_mode = 'solo';
@@ -887,7 +1126,7 @@ async function continueAfterLogin() {
     await selectLesson(DIRECT_LESSON_ID);
     return;
   }
-  if (lessons.length > 1) {
+  if (lessons.length > 1 || challengeSectionVisible()) {
     renderLessonPicker();
     return;
   }
@@ -901,7 +1140,7 @@ async function findIncompleteRun(lessonId){
 }
 function snapshotFromServerLevel(r,answers){const id=String(r.level_id||''),aa=(answers||[]).filter(a=>String(a.level_id||'')===id);return{lessonId:state.selectedLessonId,levelId:id,matchedPairs:Number(r.matched_pairs||0),correctAnswers:Number(r.correct_answers||0),wrongAnswers:Number(r.wrong_answers||0),score:Number(r.score||0),moves:Number(r.moves||0),teamStats:[],answerLog:aa.map(a=>({question_id:a.question_id,question_text:a.question_text,selected_answer:a.selected_answer,correct_answer:a.correct_answer,is_correct:isActive(a.is_correct),feedback:a.feedback||'',response_time_ms:Number(a.response_time_ms||0)})),durationSeconds:Number(r.duration_seconds||0),saveStarted:true};}
 function applyServerResume(x){const run=emptyLessonRun(state.selectedLessonId);run.sessionId=String(x.session_id||'');run.resultId=String(x.result_id||'');run.startPromise=Promise.resolve(run);(x.level_results||[]).forEach(r=>{const k=String(r.level_id||'');if(k)run.completedLevels.set(k,snapshotFromServerLevel(r,x.answers||[]));});run.usedQuestionIds=new Set((x.answers||[]).map(a=>String(a.question_id||'')).filter(Boolean));state.lessonRun=run;saveLessonRun(run);}
-async function offerResumeIfNeeded(){if(isGroupMode())return false;const id=String(state.selectedLessonId||'');if(!id||state.resumeCheckedLessons.has(id))return false;state.resumeCheckedLessons.add(id);try{const x=await findIncompleteRun(id);if(!x)return false;state.pendingResume=x;const n=(x.level_results||[]).length;$('#resumeRoundText').textContent=n?`لديك جولة سابقة غير مكتملة في هذا الدرس، وقد أكملت فيها ${n} ${n===1?'مستوى':'مستويات'}.`:'لديك جولة سابقة غير مكتملة في هذا الدرس.';$('#resumeRoundDialog').showModal();return true;}catch(_){return false;}}
+async function offerResumeIfNeeded(){if(isGroupMode())return false;const id=String(state.selectedLessonId||'');if(!id||state.resumeCheckedLessons.has(id))return false;state.resumeCheckedLessons.add(id);try{const x=await findIncompleteRun(id);if(!x)return false;state.pendingResume=x;const n=(x.level_results||[]).length;const contentName=state.challengeMode?'التحدي':'الدرس';$('#resumeRoundText').textContent=n?`لديك جولة سابقة غير مكتملة في هذا ${contentName}، وقد أكملت فيها ${n} ${n===1?'مستوى':'مستويات'}.`:`لديك جولة سابقة غير مكتملة في هذا ${contentName}.`;$('#resumeRoundDialog').showModal();return true;}catch(_){return false;}}
 function renderReady() {
   if (state.lessonRun.lessonId !== String(state.selectedLessonId)) restoreLessonRun(state.selectedLessonId);
   const modeName = state.player.game_mode === 'class' ? 'اللعب الجماعي' : 'اللعب الفردي';
@@ -912,8 +1151,9 @@ function renderReady() {
   $('#playerDetails').textContent = `${state.player.class_name} · ${state.player.school_name}`;
   $('#modeBadge').textContent = modeName;
   const lesson = currentLesson();
-  $('#readyLessonTitle').textContent = lesson?.lesson_name ? `درس ${lesson.lesson_name}` : 'الدرس';
-  $('#changeLessonButton').hidden = Boolean(DIRECT_LESSON_ID) || getLessonsForSelectedMode().length < 2;
+  $('#readyLessonTitle').textContent = state.challengeMode ? `تحدي ${state.selectedChallenge?.challenge_name || ''}` : (lesson?.lesson_name ? `درس ${lesson.lesson_name}` : 'الدرس');
+  $('#changeLessonButton').textContent = state.challengeMode ? 'العودة إلى المحتوى' : 'تغيير الدرس';
+  $('#changeLessonButton').hidden = state.challengeMode ? false : (Boolean(DIRECT_LESSON_ID) || (getLessonsForSelectedMode().length < 2 && !challengeSectionVisible()));
   $('#editTeamsButton').hidden = !isGroupMode();
   renderAppearanceControls();
 
@@ -1487,7 +1727,7 @@ function renderFinalResult() {
     $('#finalTeamResults').hidden = true;
     $('#finalTeamResults').innerHTML = '';
   }
-  $('#finalLessonName').textContent = `درس ${currentLesson()?.lesson_name || ''}`;
+  $('#finalLessonName').textContent = state.challengeMode ? `تحدي ${state.selectedChallenge?.challenge_name || ''}` : `درس ${currentLesson()?.lesson_name || ''}`;
   $('#finalLevels').textContent = totals.levels;
   $('#finalCorrect').textContent = totals.correctAnswers;
   $('#finalWrong').textContent = totals.wrongAnswers;
@@ -1695,7 +1935,7 @@ function startLevel(level) {
     stopQuestionTimer();
     if ($('#questionDialog').open) $('#questionDialog').close();
     ensureLessonRunStarted();
-    $('#gameLessonName').textContent = currentLesson()?.lesson_name || 'الدرس';
+    $('#gameLessonName').textContent = state.challengeMode ? (state.selectedChallenge?.challenge_name || 'التحدي') : (currentLesson()?.lesson_name || 'الدرس');
     $('#gameLevelName').textContent = level.level_name || 'المستوى';
     $('#sideLessonTitle').textContent = level.level_name || 'المستوى';
     $('#levelCompletePanel').hidden = true;
@@ -1772,7 +2012,7 @@ $('#groupSetupForm').addEventListener('submit', (event) => {
 
 $('#backButton').addEventListener('click', () => showView('loginView'));
 $('#backFromLessonsButton').addEventListener('click', () => showView('loginView'));
-$('#changeLessonButton').addEventListener('click', renderLessonPicker);
+$('#changeLessonButton').addEventListener('click', () => { if (state.challengeMode) leaveChallengeToContentPicker(); else renderLessonPicker(); });
 $('#editTeamsButton').addEventListener('click', renderGroupSetup);
 document.querySelectorAll('[data-open-feedback]').forEach((button) => button.addEventListener('click', () => {
   $('#feedbackForm').reset();
@@ -1825,17 +2065,27 @@ $('#feedbackForm').addEventListener('submit', async (event) => {
   }
 });
 $('#backFromGroupButton').addEventListener('click', () => {
-  if (!DIRECT_LESSON_ID && getActiveLessons().length > 1) renderLessonPicker();
+  if (state.challengeMode) renderChallengePicker();
+  else if (!DIRECT_LESSON_ID && (getActiveLessons().length > 1 || challengeSectionVisible())) renderLessonPicker();
   else showView('loginView');
 });
 $('#lessonGrid').addEventListener('click', (event) => {
+  const challengeEntry = event.target.closest('[data-open-challenges]');
+  if (challengeEntry) { renderChallengePicker(); return; }
   const button = event.target.closest('[data-lesson-id]');
   if (button) selectLesson(button.dataset.lessonId);
 });
+$('#challengeGrid').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-challenge-id]');
+  if (button) selectChallenge(button.dataset.challengeId);
+});
+$('#backFromChallengesButton').addEventListener('click', renderLessonPicker);
 $('#closeLessonAccessButton').addEventListener('click', () => $('#lessonAccessDialog').close());
 $('#lessonCodeSubmit').addEventListener('click', async () => {
   const dialog = $('#lessonAccessDialog');
+  const accessKind = String(dialog.dataset.accessKind || 'lesson');
   const lessonId = String(dialog.dataset.lessonId || '');
+  const challengeId = String(dialog.dataset.challengeId || '');
   const code = $('#lessonCodeInput').value.trim();
   if (!code) {
     $('#lessonCodeStatus').textContent = 'أدخل الكود أولًا.';
@@ -1845,14 +2095,21 @@ $('#lessonCodeSubmit').addEventListener('click', async () => {
   button.disabled = true;
   $('#lessonCodeStatus').textContent = 'جارٍ التحقق…';
   try {
-    const result = await verifyLessonAccessCode(lessonId, code);
+    const result = accessKind === 'challenge'
+      ? await verifyChallengeAccessCode(challengeId, code)
+      : await verifyLessonAccessCode(lessonId, code);
     if (!result.valid) {
       $('#lessonCodeStatus').textContent = result.message || 'الكود غير صحيح.';
       return;
     }
-    state.verifiedLessonCodes.add(lessonId);
     dialog.close();
-    await selectLesson(lessonId);
+    if (accessKind === 'challenge') {
+      state.verifiedChallengeCodes.set(challengeId, code);
+      await selectChallenge(challengeId, code);
+    } else {
+      state.verifiedLessonCodes.add(lessonId);
+      await selectLesson(lessonId);
+    }
   } catch (error) {
     $('#lessonCodeStatus').textContent = error.message || 'تعذر التحقق من الكود.';
   } finally {
@@ -1921,7 +2178,8 @@ $('#backToLevelsButton').addEventListener('click', () => {
   renderReady();
 });
 $('#retryButton').addEventListener('click', () => {
-  if (state.pendingLessonId) selectLesson(state.pendingLessonId);
+  if (state.pendingChallengeId) selectChallenge(state.pendingChallengeId);
+  else if (state.pendingLessonId) selectLesson(state.pendingLessonId);
   else startApplication();
 });
 window.addEventListener('resize', () => window.requestAnimationFrame(fitBoardToViewport));
@@ -1941,6 +2199,7 @@ async function startApplication() {
   if (canResume) state.selectedLessonId = resumeLessonId;
 
   state.pendingLessonId = '';
+  state.pendingChallengeId = '';
   setContentLoading();
 
   if (!canResume) {

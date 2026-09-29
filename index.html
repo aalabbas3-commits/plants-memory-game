@@ -23,7 +23,7 @@
   <meta name="twitter:image" content="https://aalabbas3-commits.github.io/plants-memory-game/assets/game-share-card-v2.jpg">
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
-  <link rel="stylesheet" href="styles.css?v=1.0.3-fix1">
+  <link rel="stylesheet" href="styles.css?v=1.0.6">
 </head>
 <body class="home-active" data-theme="THEME_05" data-display-mode="normal">
   <main class="app-shell">
@@ -96,7 +96,7 @@
       <header class="lesson-header">
         <div>
           <p class="eyebrow">الخطوة الثانية</p>
-          <h1>اختر الدرس</h1>
+          <h1 id="lessonPickerTitle">اختر الدرس</h1>
           <p>اختر الدرس الذي تريد اللعب فيه يا <strong id="lessonPlayerName"></strong>.</p>
         </div>
         <button id="backFromLessonsButton" class="secondary-button" type="button">العودة إلى البيانات</button>
@@ -104,6 +104,23 @@
       <div id="lessonGrid" class="lesson-grid" aria-live="polite"></div>
       <div id="lessonAccessLegend" class="lesson-access-legend" hidden>
         <span><span aria-hidden="true">🔒</span> درس مغلق</span>
+        <span><span aria-hidden="true">🔑</span> يتطلب كود دخول</span>
+      </div>
+    </section>
+
+
+    <section id="challengeView" class="screen" hidden>
+      <header class="lesson-header">
+        <div>
+          <p class="eyebrow">قسم التحدي</p>
+          <h1>اختر التحدي</h1>
+          <p>اختر التحدي الذي تريد خوضه يا <strong id="challengePlayerName"></strong>.</p>
+        </div>
+        <button id="backFromChallengesButton" class="secondary-button" type="button">العودة إلى الدروس</button>
+      </header>
+      <div id="challengeGrid" class="lesson-grid challenge-grid" aria-live="polite"></div>
+      <div id="challengeAccessLegend" class="lesson-access-legend" hidden>
+        <span><span aria-hidden="true">🔒</span> تحدٍ مغلق</span>
         <span><span aria-hidden="true">🔑</span> يتطلب كود دخول</span>
       </div>
     </section>
@@ -376,6 +393,6 @@
       </div>
     </form>
   </dialog>
-  <script src="app.js?v=1.0.3-fix1" defer></script>
+  <script src="app.js?v=1.0.6" defer></script>
 </body>
 </html>
