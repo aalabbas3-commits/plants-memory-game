@@ -1,4 +1,5 @@
 'use strict';
+// الإصدار: 1.0.3
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyfeSB3gvBHTfHuCwozfPG-GUflo6AmJmer8HJSUStmY_IdCutZWJdnHTsVfIfdpHfc/exec';
 const DEFAULT_LESSON_ID = 'PLANTS_01';
@@ -25,6 +26,8 @@ const state = {
   pendingLessonId: '',
   usingCache: false,
   verifiedLessonCodes: new Set(),
+  pendingResume: null,
+  resumeCheckedLessons: new Set(),
   appearance: {
     themeId: 'THEME_05',
     displayModeId: 'normal',
@@ -179,11 +182,12 @@ function renderTeamNameFields(count) {
     </label>`).join('');
 }
 
-function proceedAfterLessonSelection() {
+async function proceedAfterLessonSelection() {
   if (isGroupMode()) renderGroupSetup();
   else {
     restoreLessonRun(state.selectedLessonId);
-    renderReady();
+    if(await offerResumeIfNeeded())return;
+  renderReady();
   }
 }
 
@@ -828,7 +832,7 @@ async function selectLesson(lessonId) {
   if (listedLesson && !(await guardLessonAccess(listedLesson))) return;
   if (lessonId === state.selectedLessonId && state.content) {
     enforceSelectedLessonMode();
-    proceedAfterLessonSelection();
+    await proceedAfterLessonSelection();
     return;
   }
 
@@ -836,7 +840,7 @@ async function selectLesson(lessonId) {
   if (cached) {
     applyContent(cached, lessonId, true);
     enforceSelectedLessonMode();
-    proceedAfterLessonSelection();
+    await proceedAfterLessonSelection();
     fetchBootstrap(lessonId).then((data) => {
       saveCachedContent(lessonId, data);
       applyContent(data, lessonId, false);
@@ -852,7 +856,7 @@ async function selectLesson(lessonId) {
     saveCachedContent(lessonId, data);
     applyContent(data, lessonId, false);
     enforceSelectedLessonMode();
-    proceedAfterLessonSelection();
+    await proceedAfterLessonSelection();
   } catch (error) {
     $('#loadingMessage').textContent = error.message || 'تعذر تجهيز الدرس. تحقق من الإنترنت.';
     $('#retryButton').hidden = false;
@@ -890,6 +894,14 @@ async function continueAfterLogin() {
   await selectLesson(String(lessons[0].lesson_id));
 }
 
+async function findIncompleteRun(lessonId){
+ if(!state.player||isGroupMode())return null;
+ const q=new URLSearchParams({action:'find_incomplete_run',lesson_id:String(lessonId||''),student_name:state.player.student_name||'',class_name:state.player.class_name||'',school_name:state.player.school_name||'',device_id:deviceId(),_:String(Date.now())});
+ const r=await fetch(`${API_URL}?${q.toString()}`,{cache:'no-store'});if(!r.ok)return null;const p=await r.json();return p?.ok&&p?.data?.found?p.data:null;
+}
+function snapshotFromServerLevel(r,answers){const id=String(r.level_id||''),aa=(answers||[]).filter(a=>String(a.level_id||'')===id);return{lessonId:state.selectedLessonId,levelId:id,matchedPairs:Number(r.matched_pairs||0),correctAnswers:Number(r.correct_answers||0),wrongAnswers:Number(r.wrong_answers||0),score:Number(r.score||0),moves:Number(r.moves||0),teamStats:[],answerLog:aa.map(a=>({question_id:a.question_id,question_text:a.question_text,selected_answer:a.selected_answer,correct_answer:a.correct_answer,is_correct:activeValue(a.is_correct),feedback:a.feedback||'',response_time_ms:Number(a.response_time_ms||0)})),durationSeconds:Number(r.duration_seconds||0),saveStarted:true};}
+function applyServerResume(x){const run=emptyLessonRun(state.selectedLessonId);run.sessionId=String(x.session_id||'');run.resultId=String(x.result_id||'');run.startPromise=Promise.resolve(run);(x.level_results||[]).forEach(r=>{const k=String(r.level_id||'');if(k)run.completedLevels.set(k,snapshotFromServerLevel(r,x.answers||[]));});run.usedQuestionIds=new Set((x.answers||[]).map(a=>String(a.question_id||'')).filter(Boolean));state.lessonRun=run;saveLessonRun(run);}
+async function offerResumeIfNeeded(){if(isGroupMode())return false;const id=String(state.selectedLessonId||'');if(!id||state.resumeCheckedLessons.has(id))return false;state.resumeCheckedLessons.add(id);try{const x=await findIncompleteRun(id);if(!x)return false;state.pendingResume=x;const n=(x.level_results||[]).length;$('#resumeRoundText').textContent=n?`لديك جولة سابقة غير مكتملة في هذا الدرس، وقد أكملت فيها ${n} ${n===1?'مستوى':'مستويات'}.`:'لديك جولة سابقة غير مكتملة في هذا الدرس.';$('#resumeRoundDialog').showModal();return true;}catch(_){return false;}}
 function renderReady() {
   if (state.lessonRun.lessonId !== String(state.selectedLessonId)) restoreLessonRun(state.selectedLessonId);
   const modeName = state.player.game_mode === 'class' ? 'اللعب الجماعي' : 'اللعب الفردي';
@@ -1853,6 +1865,8 @@ $('#lessonCodeInput').addEventListener('keydown', (event) => {
     $('#lessonCodeSubmit').click();
   }
 });
+$('#continuePreviousRoundButton').addEventListener('click',()=>{const x=state.pendingResume;if(!x)return;applyServerResume(x);state.pendingResume=null;$('#resumeRoundDialog').close();renderReady();});
+$('#startFreshRoundButton').addEventListener('click',async()=>{const x=state.pendingResume,b=$('#startFreshRoundButton');b.disabled=true;try{if(x?.session_id&&x?.result_id)await apiPost('abandon_lesson_run',{session_id:x.session_id,result_id:x.result_id});state.pendingResume=null;resetLessonRun(state.selectedLessonId,true);$('#resumeRoundDialog').close();renderReady();}catch(error){$('#resumeRoundText').textContent=error.message||'تعذر بدء جولة جديدة. حاول مرة أخرى.';}finally{b.disabled=false;}});
 $('#levelsGrid').addEventListener('click', (event) => {
   const button = event.target.closest('[data-level-id]');
   if (!button) return;

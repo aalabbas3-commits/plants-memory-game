@@ -1509,3 +1509,5 @@ body.home-active .app-shell { width: 100%; max-width: none; }
 @media (max-width: 680px) {
   .lesson-access-legend { width: 100%; justify-content: flex-start; }
 }
+
+.resume-round-dialog{width:min(470px,calc(100% - 28px));padding:0;border:0;border-radius:24px;background:transparent}.resume-round-dialog::backdrop{background:rgba(5,35,28,.55);backdrop-filter:blur(3px)}.resume-round-panel{padding:30px;border-radius:24px;background:#fff;box-shadow:0 24px 70px rgba(5,35,28,.25);text-align:center}.resume-round-icon{font-size:2.4rem}.resume-round-panel h2{margin:8px 0;color:var(--deep)}.resume-round-panel p{color:var(--muted);line-height:1.8}.resume-round-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:20px}
