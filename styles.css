@@ -1520,3 +1520,7 @@ body.home-active .app-shell { width: 100%; max-width: none; }
 .lesson-choice.challenge-entry:hover,
 .lesson-choice.challenge-choice:hover { border-color: #c79a13; box-shadow: 0 16px 38px rgba(167,125,10,.16); }
 .challenge-grid { margin-top: 4px; }
+
+/* v1.0.7 - never leave a blank white card face when an image fails */
+.memory-card-visual.image-failed{display:grid;place-items:center;background:linear-gradient(145deg,#eef7f2,#f8fbf9)}
+.memory-card-visual.image-failed .card-fallback{display:block}

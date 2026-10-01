@@ -1,5 +1,5 @@
 'use strict';
-// الإصدار: 1.0.6
+// الإصدار: 1.0.7
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyfeSB3gvBHTfHuCwozfPG-GUflo6AmJmer8HJSUStmY_IdCutZWJdnHTsVfIfdpHfc/exec';
 const DEFAULT_LESSON_ID = 'PLANTS_01';
@@ -32,6 +32,7 @@ const state = {
   verifiedChallengeCodes: new Map(),
   challengeCatalog: { section_enabled: false, rows: [] },
   challengeCatalogLoadedAt: 0,
+  imageValidationCache: new Map(),
   challengeMode: false,
   selectedChallenge: null,
   lessonContent: null,
@@ -486,6 +487,68 @@ function displayImageUrls(value) {
   ];
 }
 
+function loadImageCandidate(url, timeoutMs = 6500) {
+  return new Promise((resolve) => {
+    if (!url) { resolve(''); return; }
+    const image = new Image();
+    let done = false;
+    const finish = (value) => { if (done) return; done = true; window.clearTimeout(timer); image.onload = null; image.onerror = null; resolve(value); };
+    const timer = window.setTimeout(() => finish(''), timeoutMs);
+    image.onload = () => finish(url);
+    image.onerror = () => finish('');
+    image.decoding = 'async';
+    image.src = url;
+  });
+}
+
+async function resolveWorkingCardImage(card) {
+  const raw = String(card?.image_url || '').trim();
+  if (!raw) return '';
+  if (state.imageValidationCache.has(raw)) return state.imageValidationCache.get(raw);
+  const candidates = [...new Set(displayImageUrls(raw).filter(Boolean))];
+  for (const url of candidates) {
+    const working = await loadImageCandidate(url);
+    if (working) { state.imageValidationCache.set(raw, working); return working; }
+  }
+  state.imageValidationCache.set(raw, '');
+  return '';
+}
+
+async function buildValidatedDeck(level) {
+  const cardCount = Number(level.card_count || 0);
+  if (!cardCount || cardCount % 2 !== 0) throw new Error('عدد بطاقات هذا المستوى يجب أن يكون عددًا زوجيًا.');
+  const pairCount = cardCount / 2;
+  const uniqueCards = [];
+  const seenCards = new Set();
+  (state.content.cards || []).filter((card) => isActive(card.active) && String(card.image_url || '').trim()).forEach((card) => {
+    const key = `${String(card.card_id || card.challenge_card_id || '').trim()}|${String(card.image_url || '').trim()}`;
+    if (!key || seenCards.has(key)) return;
+    seenCards.add(key);
+    uniqueCards.push(card);
+  });
+  const candidates = shuffle(uniqueCards);
+  if (candidates.length < pairCount) throw new Error(`هذا المستوى يحتاج ${pairCount} أزواج بصور صالحة، والمتاح ${candidates.length} فقط.`);
+
+  const selected = [];
+  const batchSize = 4;
+  for (let i = 0; i < candidates.length && selected.length < pairCount; i += batchSize) {
+    const batch = candidates.slice(i, i + batchSize);
+    const checked = await Promise.all(batch.map(async (card) => ({ card, image: await resolveWorkingCardImage(card) })));
+    checked.forEach(({ card, image }) => {
+      if (image && selected.length < pairCount) selected.push({ ...card, _resolved_image_url: image });
+    });
+  }
+  if (selected.length < pairCount) {
+    throw new Error(`تعذر تحميل عدد كافٍ من صور البطاقات. المطلوب ${pairCount} أزواج، والصالح الآن ${selected.length}.`);
+  }
+  return shuffle(selected.flatMap((card, pairIndex) => {
+    const pairId = String(card.card_id || card.challenge_card_id || `PAIR_${pairIndex}`);
+    return [0, 1].map((copyIndex) => ({
+      uid: `${pairId}_${pairIndex}_${copyIndex}_${Date.now()}`, pairId, source: card, flipped: false, matched: false
+    }));
+  }));
+}
+
 function levelKey(level, index = -1) {
   const id = level?.level_id;
   return String(id === undefined || id === null || id === '' ? index : id);
@@ -776,6 +839,10 @@ function challengeSectionVisible() {
   return challengeSectionMode() !== 'hidden';
 }
 
+function challengeSectionLockedMessage() {
+  return String(state.challengeCatalog?.section_locked_message || 'قريبًا').trim() || 'قريبًا';
+}
+
 function readChallengeCache() {
   try {
     const cached = JSON.parse(sessionStorage.getItem(CHALLENGE_CACHE_KEY) || 'null');
@@ -1003,9 +1070,9 @@ function renderLessonPicker() {
   const challengeMode = challengeSectionMode();
   const challengeLocked = challengeMode === 'locked';
   const challengeCard = challengeMode !== 'hidden' ? `
-    <button class="lesson-choice challenge-entry${challengeLocked ? ' is-locked' : ''}" type="button" data-open-challenges data-challenge-section-locked="${challengeLocked ? '1' : '0'}" title="${challengeLocked ? 'لا توجد تحديات مفتوحة حاليًا' : 'فتح التحديات'}">
+    <button class="lesson-choice challenge-entry${challengeLocked ? ' is-locked' : ''}" type="button" data-open-challenges data-challenge-section-locked="${challengeLocked ? '1' : '0'}" title="${challengeLocked ? escapeHtml(challengeSectionLockedMessage()) : 'فتح التحديات'}">
       <span class="lesson-choice-number">${challengeLocked ? '🔒' : '⚡'}</span>
-      <span class="lesson-choice-copy"><strong>التحدي${challengeLocked ? ' <span class="lesson-access-icon" aria-hidden="true">🔒</span>' : ''}</strong><small>${challengeLocked ? 'التحديات الحالية مغلقة' : 'تحديات متنوعة من درس واحد أو عدة دروس'}</small></span>
+      <span class="lesson-choice-copy"><strong>التحدي${challengeLocked ? ' <span class="lesson-access-icon" aria-hidden="true">🔒</span>' : ''}</strong><small>${challengeLocked ? escapeHtml(challengeSectionLockedMessage()) : 'تحديات متنوعة من درس واحد أو عدة دروس'}</small></span>
       <span class="lesson-choice-arrow" aria-hidden="true">${challengeLocked ? '—' : '←'}</span>
     </button>` : '';
   $('#lessonGrid').innerHTML = lessonCards + challengeCard;
@@ -1147,8 +1214,8 @@ async function findIncompleteRun(lessonId){
  const q=new URLSearchParams({action:'find_incomplete_run',lesson_id:String(lessonId||''),student_name:state.player.student_name||'',class_name:state.player.class_name||'',school_name:state.player.school_name||'',device_id:deviceId(),_:String(Date.now())});
  const r=await fetch(`${API_URL}?${q.toString()}`,{cache:'no-store'});if(!r.ok)return null;const p=await r.json();return p?.ok&&p?.data?.found?p.data:null;
 }
-function snapshotFromServerLevel(r,answers){const id=String(r.level_id||''),aa=(answers||[]).filter(a=>String(a.level_id||'')===id);return{lessonId:state.selectedLessonId,levelId:id,matchedPairs:Number(r.matched_pairs||0),correctAnswers:Number(r.correct_answers||0),wrongAnswers:Number(r.wrong_answers||0),score:Number(r.score||0),moves:Number(r.moves||0),teamStats:[],answerLog:aa.map(a=>({question_id:a.question_id,question_text:a.question_text,selected_answer:a.selected_answer,correct_answer:a.correct_answer,is_correct:isActive(a.is_correct),feedback:a.feedback||'',response_time_ms:Number(a.response_time_ms||0)})),durationSeconds:Number(r.duration_seconds||0),saveStarted:true};}
-function applyServerResume(x){const run=emptyLessonRun(state.selectedLessonId);run.sessionId=String(x.session_id||'');run.resultId=String(x.result_id||'');run.startPromise=Promise.resolve(run);(x.level_results||[]).forEach(r=>{const k=String(r.level_id||'');if(k)run.completedLevels.set(k,snapshotFromServerLevel(r,x.answers||[]));});run.usedQuestionIds=new Set((x.answers||[]).map(a=>String(a.question_id||'')).filter(Boolean));state.lessonRun=run;saveLessonRun(run);}
+function snapshotFromServerLevel(r,answersForLevel){const id=String(r.level_id||'');const aa=answersForLevel||[];return{lessonId:state.selectedLessonId,levelId:id,matchedPairs:Number(r.matched_pairs||0),correctAnswers:Number(r.correct_answers||0),wrongAnswers:Number(r.wrong_answers||0),score:Number(r.score||0),moves:Number(r.moves||0),teamStats:[],answerLog:aa.map(a=>({question_id:a.question_id,question_text:a.question_text,selected_answer:a.selected_answer,correct_answer:a.correct_answer,is_correct:isActive(a.is_correct),feedback:a.feedback||'',response_time_ms:Number(a.response_time_ms||0)})),durationSeconds:Number(r.duration_seconds||0),saveStarted:true};}
+function applyServerResume(x){const run=emptyLessonRun(state.selectedLessonId);run.sessionId=String(x.session_id||'');run.resultId=String(x.result_id||'');run.startPromise=Promise.resolve(run);const answers=x.answers||[];const byLevel=new Map();answers.forEach(a=>{const key=String(a.level_id||'');if(!byLevel.has(key))byLevel.set(key,[]);byLevel.get(key).push(a);});(x.level_results||[]).forEach(r=>{const k=String(r.level_id||'');if(k)run.completedLevels.set(k,snapshotFromServerLevel(r,byLevel.get(k)||[]));});run.usedQuestionIds=new Set(answers.map(a=>String(a.question_id||'')).filter(Boolean));state.lessonRun=run;saveLessonRun(run);}
 async function offerResumeIfNeeded(){if(isGroupMode())return false;const id=String(state.selectedLessonId||'');if(!id||state.resumeCheckedLessons.has(id))return false;state.resumeCheckedLessons.add(id);try{const x=await findIncompleteRun(id);if(!x)return false;state.pendingResume=x;const n=(x.level_results||[]).length;const contentName=state.challengeMode?'التحدي':'الدرس';$('#resumeRoundText').textContent=n?`لديك جولة سابقة غير مكتملة في هذا ${contentName}، وقد أكملت فيها ${n} ${n===1?'مستوى':'مستويات'}.`:`لديك جولة سابقة غير مكتملة في هذا ${contentName}.`;$('#resumeRoundDialog').showModal();return true;}catch(_){return false;}}
 function renderReady() {
   if (state.lessonRun.lessonId !== String(state.selectedLessonId)) restoreLessonRun(state.selectedLessonId);
@@ -1187,7 +1254,7 @@ function renderReady() {
 }
 
 function cardFaceMarkup(card) {
-  const imageUrls = displayImageUrls(card.image_url);
+  const imageUrls = card._resolved_image_url ? [card._resolved_image_url, ...displayImageUrls(card.image_url).filter((url) => url !== card._resolved_image_url)] : displayImageUrls(card.image_url);
   const imageUrl = imageUrls[0] || '';
   const title = card.card_title || 'بطاقة نباتية';
   if (imageUrl) {
@@ -1915,11 +1982,15 @@ function revealCard(uid) {
   compareCards(state.game.roundToken);
 }
 
-function startLevel(level) {
+async function startLevel(level) {
   try {
+    const levelMessage = $('#levelMessage');
+    if (levelMessage) levelMessage.textContent = 'جارٍ تجهيز صور البطاقات…';
     state.game.roundToken += 1;
+    const token = state.game.roundToken;
     state.game.level = level;
-    state.game.deck = buildDeck(level);
+    state.game.deck = state.challengeMode ? await buildValidatedDeck(level) : buildDeck(level);
+    if (token !== state.game.roundToken) return;
     state.game.firstCard = null;
     state.game.secondCard = null;
     state.game.locked = false;
@@ -1950,6 +2021,7 @@ function startLevel(level) {
     $('#levelCompletePanel').hidden = true;
     renderBoard();
     updateGameHud(isGroupMode() ? `يبدأ الفريق: ${activeTeam()?.team_name || ''}. اكشف بطاقتين.` : 'اكشف بطاقتين للبحث عن صورة متطابقة.');
+    if ($('#levelMessage')) $('#levelMessage').textContent = '';
     showView('gameView');
   } catch (error) {
     $('#levelMessage').textContent = error.message || 'تعذر بدء هذا المستوى.';
@@ -2143,7 +2215,7 @@ $('#lessonCodeInput').addEventListener('keydown', (event) => {
     $('#lessonCodeSubmit').click();
   }
 });
-$('#continuePreviousRoundButton').addEventListener('click',()=>{const x=state.pendingResume;if(!x)return;try{applyServerResume(x);state.pendingResume=null;$('#resumeRoundDialog').close();renderReady();}catch(error){console.error('Resume round failed:',error);$('#resumeRoundText').textContent='تعذر استعادة الجولة السابقة. حاول مرة أخرى أو ابدأ جولة جديدة.';}});
+$('#continuePreviousRoundButton').addEventListener('click',()=>{const x=state.pendingResume;if(!x)return;const b=$('#continuePreviousRoundButton');b.disabled=true;b.textContent='جارٍ المتابعة…';window.requestAnimationFrame(()=>{try{applyServerResume(x);state.pendingResume=null;$('#resumeRoundDialog').close();renderReady();}catch(error){console.error('Resume round failed:',error);$('#resumeRoundText').textContent='تعذر استعادة الجولة السابقة. حاول مرة أخرى أو ابدأ جولة جديدة.';}finally{b.disabled=false;b.textContent='متابعة الجولة';}});});
 $('#startFreshRoundButton').addEventListener('click',async()=>{const x=state.pendingResume,b=$('#startFreshRoundButton');b.disabled=true;try{if(x?.session_id&&x?.result_id)await apiPost('abandon_lesson_run',{session_id:x.session_id,result_id:x.result_id});state.pendingResume=null;resetLessonRun(state.selectedLessonId,true);$('#resumeRoundDialog').close();renderReady();}catch(error){$('#resumeRoundText').textContent=error.message||'تعذر بدء جولة جديدة. حاول مرة أخرى.';}finally{b.disabled=false;}});
 $('#levelsGrid').addEventListener('click', (event) => {
   const button = event.target.closest('[data-level-id]');
