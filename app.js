@@ -765,8 +765,15 @@ function visibleChallenges() {
   return (state.challengeCatalog.rows || []).filter((challenge) => isActive(challenge.active) && challengeStatus(challenge) !== 'hidden');
 }
 
+function challengeSectionMode() {
+  if (!state.challengeCatalog?.section_enabled) return 'hidden';
+  const visible = visibleChallenges();
+  if (!visible.length) return 'hidden';
+  return visible.some((challenge) => ['available', 'code'].includes(challengeStatus(challenge))) ? 'open' : 'locked';
+}
+
 function challengeSectionVisible() {
-  return Boolean(state.challengeCatalog?.section_enabled) && visibleChallenges().length > 0;
+  return challengeSectionMode() !== 'hidden';
 }
 
 function readChallengeCache() {
@@ -993,11 +1000,13 @@ function renderLessonPicker() {
         <span class="lesson-choice-arrow" aria-hidden="true">${locked ? '—' : '←'}</span>
       </button>`;
   }).join('');
-  const challengeCard = challengeSectionVisible() ? `
-    <button class="lesson-choice challenge-entry" type="button" data-open-challenges>
-      <span class="lesson-choice-number">⚡</span>
-      <span class="lesson-choice-copy"><strong>التحدي</strong><small>تحديات متنوعة من درس واحد أو عدة دروس</small></span>
-      <span class="lesson-choice-arrow" aria-hidden="true">←</span>
+  const challengeMode = challengeSectionMode();
+  const challengeLocked = challengeMode === 'locked';
+  const challengeCard = challengeMode !== 'hidden' ? `
+    <button class="lesson-choice challenge-entry${challengeLocked ? ' is-locked' : ''}" type="button" data-open-challenges data-challenge-section-locked="${challengeLocked ? '1' : '0'}" title="${challengeLocked ? 'لا توجد تحديات مفتوحة حاليًا' : 'فتح التحديات'}">
+      <span class="lesson-choice-number">${challengeLocked ? '🔒' : '⚡'}</span>
+      <span class="lesson-choice-copy"><strong>التحدي${challengeLocked ? ' <span class="lesson-access-icon" aria-hidden="true">🔒</span>' : ''}</strong><small>${challengeLocked ? 'التحديات الحالية مغلقة' : 'تحديات متنوعة من درس واحد أو عدة دروس'}</small></span>
+      <span class="lesson-choice-arrow" aria-hidden="true">${challengeLocked ? '—' : '←'}</span>
     </button>` : '';
   $('#lessonGrid').innerHTML = lessonCards + challengeCard;
   $('#lessonAccessLegend').hidden = !lessons.some((lesson) => ['locked', 'code'].includes(lessonStatus(lesson)));
@@ -2071,7 +2080,19 @@ $('#backFromGroupButton').addEventListener('click', () => {
 });
 $('#lessonGrid').addEventListener('click', (event) => {
   const challengeEntry = event.target.closest('[data-open-challenges]');
-  if (challengeEntry) { renderChallengePicker(); return; }
+  if (challengeEntry) {
+    if (challengeEntry.dataset.challengeSectionLocked === '1') {
+      $('#lessonAccessTitle').textContent = 'التحدي';
+      $('#lessonAccessMessage').textContent = 'لا توجد تحديات مفتوحة حاليًا.';
+      $('#lessonCodeFields').hidden = true;
+      $('#lessonCodeSubmit').hidden = true;
+      $('#lessonAccessDialog').dataset.accessKind = 'challenge-section';
+      $('#lessonAccessDialog').showModal();
+      return;
+    }
+    renderChallengePicker();
+    return;
+  }
   const button = event.target.closest('[data-lesson-id]');
   if (button) selectLesson(button.dataset.lessonId);
 });
