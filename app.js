@@ -1,5 +1,5 @@
 'use strict';
-// الإصدار: 1.0.7
+// الإصدار: 1.0.18
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyfeSB3gvBHTfHuCwozfPG-GUflo6AmJmer8HJSUStmY_IdCutZWJdnHTsVfIfdpHfc/exec';
 const DEFAULT_LESSON_ID = 'PLANTS_01';
@@ -11,11 +11,20 @@ const RUN_RESUME_KEY = 'plants_active_lesson_run_v1';
 const VIEW_STORAGE_KEY = 'plants_current_view_v1';
 const LEADERBOARD_CACHE_PREFIX = 'plants_leaderboard_v1_';
 const LEADERBOARD_CACHE_TTL = 2 * 60 * 1000;
+const LESSON_LEADERBOARD_ROTATE_MS = 9000;
 const CHALLENGE_CACHE_KEY = 'scientific_memory_challenges_v1';
 const CHALLENGE_CACHE_TTL = 2 * 60 * 1000;
 const params = new URLSearchParams(window.location.search);
 const DIRECT_LESSON_ID = String(params.get('lesson') || params.get('lesson_id') || '').trim();
 const HOME_SCIENCE_ICONS = Array.from({ length: 24 }, (_, index) => `assets/home-science-${String(index + 1).padStart(2, '0')}.webp`);
+const LEADERBOARD_TROPHY_URL = 'https://aalabbas3-commits.github.io/plants-memory-game/assets/leaderboard/trophy.webp';
+const LEADERBOARD_LOCK_URL = 'https://aalabbas3-commits.github.io/plants-memory-game/assets/leaderboard/lock.webp';
+const LEADERBOARD_KEY_URL = 'https://aalabbas3-commits.github.io/plants-memory-game/assets/leaderboard/key.webp';
+
+function decorativeIcon(url, className = 'ui-inline-icon') {
+  if (!url) return '';
+  return `<img class="${className}" src="${url}" alt="" aria-hidden="true" loading="lazy" decoding="async">`;
+}
 
 const state = {
   content: null,
@@ -24,6 +33,14 @@ const state = {
   loadPromise: null,
   leaderboardRequest: 0,
   leaderboardLoads: new Map(),
+  lessonLeaderboardLoads: new Map(),
+  lessonLeaderboardRows: new Map(),
+  lessonLeaderboardLessons: [],
+  lessonLeaderboardIndex: 0,
+  lessonLeaderboardTimer: 0,
+  challengeLeaderboardChallenges: [],
+  challengeLeaderboardIndex: 0,
+  challengeLeaderboardTimer: 0,
   homeScienceRendered: false,
   pendingLessonId: '',
   pendingChallengeId: '',
@@ -94,6 +111,14 @@ function showView(id) {
   });
   document.body.classList.toggle('game-active', id === 'gameView');
   document.body.classList.toggle('home-active', id === 'loginView');
+  if (id !== 'lessonView' && state.lessonLeaderboardTimer) {
+    window.clearTimeout(state.lessonLeaderboardTimer);
+    state.lessonLeaderboardTimer = 0;
+  }
+  if (id !== 'challengeView' && state.challengeLeaderboardTimer) {
+    window.clearTimeout(state.challengeLeaderboardTimer);
+    state.challengeLeaderboardTimer = 0;
+  }
   try { sessionStorage.setItem(VIEW_STORAGE_KEY, id); } catch (_) {}
   window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   if (id === 'loginView') {
@@ -738,6 +763,177 @@ async function loadLeaderboard(lessonId = state.selectedLessonId, forceRefresh =
   return loadPromise;
 }
 
+
+async function fetchLessonLeaderboardRows(lessonId, forceRefresh = false) {
+  lessonId = String(lessonId || '');
+  if (!lessonId) return [];
+  const cached = readCachedLeaderboard(lessonId);
+  if (cached?.rows) state.lessonLeaderboardRows.set(lessonId, cached.rows);
+  const fresh = cached && Date.now() - Number(cached.saved_at || 0) < LEADERBOARD_CACHE_TTL;
+  if (!forceRefresh && fresh) return cached.rows;
+  if (state.lessonLeaderboardLoads.has(lessonId)) return state.lessonLeaderboardLoads.get(lessonId);
+
+  const promise = (async () => {
+    let timeoutId = 0;
+    try {
+      const controller = new AbortController();
+      timeoutId = window.setTimeout(() => controller.abort(), 12000);
+      const url = `${API_URL}?action=leaderboard&lesson_id=${encodeURIComponent(lessonId)}&limit=10&_=${Date.now()}`;
+      const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error(payload.error || 'تعذر تحميل النتائج.');
+      const rows = Array.isArray(payload.data?.rows) ? payload.data.rows : [];
+      state.lessonLeaderboardRows.set(lessonId, rows);
+      saveCachedLeaderboard(lessonId, rows);
+      return rows;
+    } catch (_) {
+      return cached?.rows || [];
+    } finally {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      state.lessonLeaderboardLoads.delete(lessonId);
+    }
+  })();
+  state.lessonLeaderboardLoads.set(lessonId, promise);
+  return promise;
+}
+
+function lessonTopFiveMarkup(rows = []) {
+  const names = rows.slice(0, 5).map((row) => String(row.student_name || 'طالب').trim()).filter(Boolean);
+  if (!names.length) return '<span class="lesson-best5-empty">لا توجد نتائج بعد</span>';
+  const namesMarkup = names.map((name) => `<span class="lesson-best5-name">${escapeHtml(name)}</span>`).join('');
+  return `<span class="lesson-best5-track"><span class="lesson-best5-seq">${namesMarkup}</span><span class="lesson-best5-seq is-duplicate" aria-hidden="true">${namesMarkup}</span></span>`;
+}
+
+function refreshLessonBestFiveMotion(target) {
+  if (!target) return;
+  const track = target.querySelector('.lesson-best5-track');
+  const primarySeq = track?.querySelector('.lesson-best5-seq:not(.is-duplicate)');
+  if (!track || !primarySeq) {
+    target.classList.remove('is-scrolling', 'is-measuring');
+    target.style.removeProperty('--best5-loop-width');
+    return;
+  }
+  const apply = () => {
+    target.classList.remove('is-scrolling');
+    target.classList.add('is-measuring');
+    target.style.removeProperty('--best5-loop-width');
+    track.style.removeProperty('--best5-duration');
+
+    const trackStyles = window.getComputedStyle(track);
+    const gap = parseFloat(trackStyles.columnGap || trackStyles.gap || '0') || 0;
+    const primaryWidth = Math.ceil(primarySeq.scrollWidth || primarySeq.getBoundingClientRect().width);
+    const overflow = Math.max(0, primaryWidth - target.clientWidth);
+
+    target.classList.remove('is-measuring');
+
+    if (overflow > 6) {
+      target.style.setProperty('--best5-loop-width', `${primaryWidth + gap}px`);
+      track.style.setProperty('--best5-duration', `${Math.max(13, Math.min(25, 10 + primaryWidth / 52)).toFixed(1)}s`);
+      target.classList.add('is-scrolling');
+    }
+  };
+  window.requestAnimationFrame(apply);
+}
+
+function updateLessonBestFive(lessonId, rows = []) {
+  const target = document.querySelector(`[data-best5-lesson="${CSS.escape(String(lessonId))}"] .lesson-best5-names`);
+  if (!target) return;
+  target.innerHTML = lessonTopFiveMarkup(rows);
+  refreshLessonBestFiveMotion(target);
+}
+
+function renderLessonLeaderboardRows(rows = []) {
+  const list = $('#lessonLeaderboardList');
+  if (!list) return;
+  if (!rows.length) {
+    list.innerHTML = '<li class="lesson-leaderboard-empty">لا توجد نتائج مكتملة لهذا الدرس حتى الآن.</li>';
+    return;
+  }
+  list.innerHTML = rows.slice(0, 10).map((row, index) => `
+    <li>
+      <span class="lesson-leaderboard-rank">${index + 1}</span>
+      <span class="lesson-leaderboard-name">${escapeHtml(row.student_name || 'طالب')}</span>
+      <span class="lesson-leaderboard-result"><strong>${escapeHtml(String(row.score || 0))}</strong><small>${escapeHtml(formatLeaderboardDuration(row.duration_seconds))}</small></span>
+    </li>`).join('');
+}
+
+function renderLessonLeaderboardDots() {
+  const dots = $('#lessonLeaderboardDots');
+  if (!dots) return;
+  dots.innerHTML = state.lessonLeaderboardLessons.map((lesson, index) => `
+    <button type="button" class="lesson-leaderboard-dot${index === state.lessonLeaderboardIndex ? ' active' : ''}" data-lesson-board-index="${index}" aria-label="عرض أفضل 10 في ${escapeHtml(lesson.lesson_name || 'الدرس')}"></button>`).join('');
+}
+
+function scheduleLessonLeaderboardRotation() {
+  if (state.lessonLeaderboardTimer) window.clearTimeout(state.lessonLeaderboardTimer);
+  if (state.lessonLeaderboardLessons.length < 2 || $('#lessonView')?.hidden) return;
+  state.lessonLeaderboardTimer = window.setTimeout(() => {
+    showLessonLeaderboardAt(state.lessonLeaderboardIndex + 1, true);
+  }, LESSON_LEADERBOARD_ROTATE_MS);
+}
+
+async function showLessonLeaderboardAt(index, fromAuto = false) {
+  const lessons = state.lessonLeaderboardLessons;
+  if (!lessons.length) return;
+  const normalized = (Number(index) % lessons.length + lessons.length) % lessons.length;
+  state.lessonLeaderboardIndex = normalized;
+  const lesson = lessons[normalized];
+  const lessonId = String(lesson.lesson_id || '');
+  $('#lessonLeaderboardLesson').textContent = lesson.lesson_name || 'الدرس';
+  $('#lessonLeaderboardMeta').textContent = 'أفضل نتيجة مكتملة لكل طالب · عند التساوي تُقدَّم السرعة';
+  renderLessonLeaderboardDots();
+
+  const cachedRows = state.lessonLeaderboardRows.get(lessonId) || readCachedLeaderboard(lessonId)?.rows || null;
+  if (cachedRows) renderLessonLeaderboardRows(cachedRows);
+  else $('#lessonLeaderboardList').innerHTML = '<li class="lesson-leaderboard-empty">جارٍ تحميل النتائج…</li>';
+
+  const rows = await fetchLessonLeaderboardRows(lessonId);
+  if (state.lessonLeaderboardIndex === normalized && String(state.lessonLeaderboardLessons[normalized]?.lesson_id || '') === lessonId) {
+    renderLessonLeaderboardRows(rows);
+  }
+  updateLessonBestFive(lessonId, rows);
+  scheduleLessonLeaderboardRotation();
+}
+
+function setupLessonLeaderboard(lessons = []) {
+  state.lessonLeaderboardLessons = [];
+  state.lessonLeaderboardIndex = 0;
+  const board = $('#lessonLeaderboard');
+  if (!board) return;
+  board.hidden = true;
+  $('#lessonLeaderboardDots').innerHTML = '';
+  $('#lessonLeaderboardList').innerHTML = '';
+  prepareLessonRankings(lessons);
+}
+
+async function prepareLessonRankings(lessons = []) {
+  const board = $('#lessonLeaderboard');
+  if (!board) return;
+  const eligible = [];
+  const visibleLessons = lessons.filter((lesson) => String(lesson.lesson_id || ''));
+
+  for (const lesson of visibleLessons) {
+    if ($('#lessonView')?.hidden) return;
+    const lessonId = String(lesson.lesson_id || '');
+    const cached = state.lessonLeaderboardRows.get(lessonId) || readCachedLeaderboard(lessonId)?.rows || null;
+    if (Array.isArray(cached)) {
+      updateLessonBestFive(lessonId, cached);
+      if (cached.length) eligible.push(lesson);
+    }
+
+    const rows = await fetchLessonLeaderboardRows(lessonId);
+    updateLessonBestFive(lessonId, rows);
+    if (rows.length && !eligible.some((item) => String(item.lesson_id) === lessonId)) eligible.push(lesson);
+  }
+
+  if ($('#lessonView')?.hidden) return;
+  state.lessonLeaderboardLessons = eligible;
+  state.lessonLeaderboardIndex = 0;
+  board.hidden = eligible.length === 0;
+  if (!eligible.length) return;
+  await showLessonLeaderboardAt(0);
+}
+
 function applyContent(data, lessonId, fromCache = false) {
   state.challengeMode = false;
   state.selectedChallenge = null;
@@ -888,24 +1084,159 @@ async function ensureChallengesLoaded(force = false) {
   return state.challengeCatalog;
 }
 
+
+function challengeVirtualLessonId(challengeId) {
+  return `CHALLENGE__${String(challengeId || '')}`;
+}
+
+function challengeLessonNames(challenge) {
+  const ids = Array.isArray(challenge?.lesson_ids) ? challenge.lesson_ids.map(String) : [];
+  if (!ids.length) return [];
+  const lessons = state.lessonContent?.lessons || state.content?.lessons || [];
+  const map = new Map(lessons.map((lesson) => [String(lesson.lesson_id || ''), String(lesson.lesson_name || '').trim()]));
+  return ids.map((id) => map.get(id) || '').filter(Boolean);
+}
+
+function updateChallengeBestFive(challengeId, rows = []) {
+  const target = document.querySelector(`[data-best5-challenge="${CSS.escape(String(challengeId))}"] .lesson-best5-names`);
+  if (!target) return;
+  target.innerHTML = lessonTopFiveMarkup(rows);
+  refreshLessonBestFiveMotion(target);
+}
+
+function renderChallengeLeaderboardRows(rows = []) {
+  const list = $('#challengeLeaderboardList');
+  if (!list) return;
+  if (!rows.length) {
+    list.innerHTML = '<li class="lesson-leaderboard-empty">لا توجد نتائج مكتملة لهذا التحدي حتى الآن.</li>';
+    return;
+  }
+  list.innerHTML = rows.slice(0, 10).map((row, index) => `
+    <li>
+      <span class="lesson-leaderboard-rank">${index + 1}</span>
+      <span class="lesson-leaderboard-name">${escapeHtml(row.student_name || 'طالب')}</span>
+      <span class="lesson-leaderboard-result"><strong>${escapeHtml(String(row.score || 0))}</strong><small>${escapeHtml(formatLeaderboardDuration(row.duration_seconds))}</small></span>
+    </li>`).join('');
+}
+
+function renderChallengeLeaderboardDots() {
+  const dots = $('#challengeLeaderboardDots');
+  if (!dots) return;
+  dots.innerHTML = state.challengeLeaderboardChallenges.map((challenge, index) => `
+    <button type="button" class="lesson-leaderboard-dot${index === state.challengeLeaderboardIndex ? ' active' : ''}" data-challenge-board-index="${index}" aria-label="عرض أفضل 10 في ${escapeHtml(challenge.challenge_name || 'التحدي')}"></button>`).join('');
+}
+
+function scheduleChallengeLeaderboardRotation() {
+  if (state.challengeLeaderboardTimer) window.clearTimeout(state.challengeLeaderboardTimer);
+  if (state.challengeLeaderboardChallenges.length < 2 || $('#challengeView')?.hidden) return;
+  state.challengeLeaderboardTimer = window.setTimeout(() => {
+    showChallengeLeaderboardAt(state.challengeLeaderboardIndex + 1, true);
+  }, LESSON_LEADERBOARD_ROTATE_MS);
+}
+
+async function showChallengeLeaderboardAt(index, fromAuto = false) {
+  const challenges = state.challengeLeaderboardChallenges;
+  if (!challenges.length) return;
+  const normalized = (Number(index) % challenges.length + challenges.length) % challenges.length;
+  state.challengeLeaderboardIndex = normalized;
+  const challenge = challenges[normalized];
+  const challengeId = String(challenge.challenge_id || '');
+  const virtualId = challengeVirtualLessonId(challengeId);
+  $('#challengeLeaderboardChallenge').textContent = challenge.challenge_name || 'التحدي';
+  $('#challengeLeaderboardMeta').textContent = 'أفضل نتيجة مكتملة لكل طالب · عند التساوي تُقدَّم السرعة';
+  renderChallengeLeaderboardDots();
+
+  const cachedRows = state.lessonLeaderboardRows.get(virtualId) || readCachedLeaderboard(virtualId)?.rows || null;
+  if (cachedRows) renderChallengeLeaderboardRows(cachedRows);
+  else $('#challengeLeaderboardList').innerHTML = '<li class="lesson-leaderboard-empty">جارٍ تحميل النتائج…</li>';
+
+  const rows = await fetchLessonLeaderboardRows(virtualId);
+  if (state.challengeLeaderboardIndex === normalized && String(state.challengeLeaderboardChallenges[normalized]?.challenge_id || '') === challengeId) {
+    renderChallengeLeaderboardRows(rows);
+  }
+  updateChallengeBestFive(challengeId, rows);
+  scheduleChallengeLeaderboardRotation();
+}
+
+function setupChallengeLeaderboard(challenges = []) {
+  state.challengeLeaderboardChallenges = [];
+  state.challengeLeaderboardIndex = 0;
+  const board = $('#challengeLeaderboard');
+  if (!board) return;
+  board.hidden = true;
+  $('#challengeLeaderboardDots').innerHTML = '';
+  $('#challengeLeaderboardList').innerHTML = '';
+  prepareChallengeRankings(challenges);
+}
+
+async function prepareChallengeRankings(challenges = []) {
+  const board = $('#challengeLeaderboard');
+  if (!board) return;
+  const visible = challenges.filter((challenge) => String(challenge.challenge_id || ''));
+
+  const results = await Promise.all(visible.map(async (challenge) => {
+    const challengeId = String(challenge.challenge_id || '');
+    const virtualId = challengeVirtualLessonId(challengeId);
+    const cached = state.lessonLeaderboardRows.get(virtualId) || readCachedLeaderboard(virtualId)?.rows || null;
+    if (Array.isArray(cached)) updateChallengeBestFive(challengeId, cached);
+    const rows = await fetchLessonLeaderboardRows(virtualId);
+    updateChallengeBestFive(challengeId, rows);
+    return { challenge, rows };
+  }));
+
+  if ($('#challengeView')?.hidden) return;
+  const eligible = results.filter((item) => item.rows.length).map((item) => item.challenge);
+  state.challengeLeaderboardChallenges = eligible;
+  state.challengeLeaderboardIndex = 0;
+  board.hidden = eligible.length === 0;
+  if (!eligible.length) return;
+  await showChallengeLeaderboardAt(0);
+}
+
 function renderChallengePicker() {
   const challenges = visibleChallenges();
   $('#challengePlayerName').textContent = state.player?.student_name || '';
+
   $('#challengeGrid').innerHTML = challenges.length ? challenges.map((challenge, index) => {
     const id = String(challenge.challenge_id || '');
     const status = challengeStatus(challenge);
     const locked = status === 'locked';
     const coded = status === 'code';
-    const icon = locked ? '🔒' : coded ? '🔑' : '⚡';
-    const description = locked ? (challenge.locked_message || 'قريبًا') : coded ? 'يتطلب كود دخول' : (challenge.description || `${challenge.lesson_ids?.length || 0} درس/دروس`);
-    return `<button class="lesson-choice challenge-choice${locked ? ' is-locked' : ''}${coded ? ' is-coded' : ''}" type="button" data-challenge-id="${escapeHtml(id)}" title="${escapeHtml(description)}">
-      <span class="lesson-choice-number">${icon}</span>
-      <span class="lesson-choice-copy"><strong>${escapeHtml(challenge.challenge_name || `التحدي ${index + 1}`)}${locked || coded ? ` <span class="lesson-access-icon" aria-hidden="true">${locked ? '🔒' : '🔑'}</span>` : ''}</strong><small>${escapeHtml(description)}</small></span>
-      <span class="lesson-choice-arrow" aria-hidden="true">${locked ? '—' : '←'}</span>
-    </button>`;
+    const cover = lessonCoverUrl(challenge.card_image_url || '');
+    const linkedLessons = challengeLessonNames(challenge);
+    const description = locked
+      ? (challenge.locked_message || 'قريبًا')
+      : (challenge.description || 'تحدٍ تعليمي ممتع');
+    const statusText = locked ? 'مغلق' : coded ? 'يتطلب كود' : 'متاح';
+    const statusIcon = locked
+      ? decorativeIcon(LEADERBOARD_LOCK_URL, 'lesson-status-icon')
+      : coded
+        ? decorativeIcon(LEADERBOARD_KEY_URL, 'lesson-status-icon')
+        : '<span class="lesson-status-check" aria-hidden="true">✓</span>';
+    const action = locked ? (challenge.locked_message || 'قريبًا') : coded ? 'الدخول بالكود' : 'ابدأ التحدي';
+
+    return `
+      <button class="lesson-cover-card challenge-cover-card${locked ? ' is-locked' : ''}${coded ? ' is-coded' : ''}" type="button" data-challenge-id="${escapeHtml(id)}" title="${escapeHtml(description)}">
+        <span class="lesson-cover-media${cover ? '' : ' no-image'}">
+          ${cover ? `<img src="${escapeHtml(cover)}" alt="${escapeHtml(challenge.challenge_name || `التحدي ${index + 1}`)}" loading="lazy" decoding="async">` : `<span class="lesson-cover-fallback" aria-hidden="true">${locked ? decorativeIcon(LEADERBOARD_LOCK_URL, 'lesson-cover-fallback-icon') : coded ? decorativeIcon(LEADERBOARD_KEY_URL, 'lesson-cover-fallback-icon') : decorativeIcon(LEADERBOARD_TROPHY_URL, 'lesson-cover-fallback-icon')}</span>`}
+          <span class="lesson-card-status status-${escapeHtml(status)}"><span aria-hidden="true">${statusIcon}</span>${escapeHtml(statusText)}</span>
+          <span class="lesson-cover-title">${escapeHtml(challenge.challenge_name || `التحدي ${index + 1}`)}</span>
+        </span>
+        <span class="lesson-cover-body challenge-card-body">
+          ${description ? `<small>${escapeHtml(description)}</small>` : ''}
+          ${linkedLessons.length ? `<span class="challenge-linked-lessons"><strong>الدروس:</strong> ${linkedLessons.map(escapeHtml).join(' · ')}</span>` : ''}
+          <span class="lesson-card-best5" data-best5-challenge="${escapeHtml(id)}">
+            <span class="lesson-best5-title"><img src="${LEADERBOARD_TROPHY_URL}" alt="" aria-hidden="true" loading="lazy" decoding="async"><span>أفضل 5</span></span>
+            <span class="lesson-best5-names"><span class="lesson-best5-empty">جارٍ التحميل…</span></span>
+          </span>
+          <span class="lesson-cover-action${locked ? ' is-disabled' : ''}${coded ? ' is-code' : ''}">${escapeHtml(action)} <span aria-hidden="true">${locked ? decorativeIcon(LEADERBOARD_LOCK_URL, 'lesson-action-icon') : coded ? decorativeIcon(LEADERBOARD_KEY_URL, 'lesson-action-icon') : '←'}</span></span>
+        </span>
+      </button>`;
   }).join('') : '<article class="level-card"><h3>لا توجد تحديات متاحة حاليًا</h3><p>ستظهر التحديات هنا عند تفعيلها.</p></article>';
+
   $('#challengeAccessLegend').hidden = !challenges.some((challenge) => ['locked', 'code'].includes(challengeStatus(challenge)));
   showView('challengeView');
+  setupChallengeLeaderboard(challenges);
 }
 
 function challengeById(challengeId) {
@@ -1041,44 +1372,84 @@ function leaveChallengeToContentPicker() {
   renderLessonPicker();
 }
 
+function lessonCoverUrl(value) {
+  const candidates = displayImageUrls(value || '');
+  return candidates[0] || '';
+}
+
+function lessonCardDescription(lesson, status) {
+  if (status === 'locked') return lesson.locked_message || 'قريبًا';
+  if (status === 'code') return lesson.description || 'هذا الدرس يتطلب كود دخول';
+  return lesson.description || '';
+}
+
+function lessonActionLabel(status) {
+  if (status === 'locked') return 'قريبًا';
+  if (status === 'code') return 'الدخول بالكود';
+  return 'ابدأ الدرس';
+}
+
 function renderLessonPicker() {
-  const lessons = getLessonsForSelectedMode();
+  const lessons = [...getLessonsForSelectedMode()].sort((a, b) => {
+    const aOrder = Number(a.sort_order || 9999);
+    const bOrder = Number(b.sort_order || 9999);
+    return aOrder - bOrder || String(a.lesson_name || '').localeCompare(String(b.lesson_name || ''), 'ar');
+  });
   $('#lessonPlayerName').textContent = state.player?.student_name || '';
+
   const lessonCards = lessons.map((lesson, index) => {
     const lessonId = String(lesson.lesson_id || '');
     const isCurrent = lessonId === state.selectedLessonId;
     const status = lessonStatus(lesson);
     const locked = status === 'locked';
     const coded = status === 'code';
-    const icon = locked ? '🔒' : coded ? '🔑' : '';
-    const title = locked ? (lesson.locked_message || 'قريبًا') : coded ? 'يتطلب كود دخول' : 'متاح';
-    const description = locked
-      ? (lesson.locked_message || 'قريبًا')
-      : coded
-        ? 'يتطلب كود دخول'
-        : (lesson.description || lesson.subject || 'اضغط لاختيار هذا الدرس');
+    const cover = lessonCoverUrl(lesson.card_image_url);
+    const description = lessonCardDescription(lesson, status);
+    const action = lessonActionLabel(status);
+    const statusText = locked ? 'مغلق' : coded ? 'يتطلب كود' : 'متاح';
+    const statusIcon = locked ? decorativeIcon(LEADERBOARD_LOCK_URL, 'lesson-status-icon') : coded ? decorativeIcon(LEADERBOARD_KEY_URL, 'lesson-status-icon') : '<span class="lesson-status-check" aria-hidden="true">✓</span>';
+
     return `
-      <button class="lesson-choice${isCurrent ? ' current' : ''}${locked ? ' is-locked' : ''}${coded ? ' is-coded' : ''}" type="button" data-lesson-id="${escapeHtml(lessonId)}" data-lesson-status="${escapeHtml(status)}" title="${escapeHtml(title)}">
-        <span class="lesson-choice-number">${icon || (index + 1)}</span>
-        <span class="lesson-choice-copy">
-          <strong>${escapeHtml(lesson.lesson_name || `الدرس ${index + 1}`)}${icon ? ` <span class="lesson-access-icon" aria-hidden="true">${icon}</span>` : ''}</strong>
-          <small>${escapeHtml(description)}</small>
+      <button class="lesson-cover-card${isCurrent ? ' current' : ''}${locked ? ' is-locked' : ''}${coded ? ' is-coded' : ''}" type="button" data-lesson-id="${escapeHtml(lessonId)}" data-lesson-status="${escapeHtml(status)}" title="${escapeHtml(description)}">
+        <span class="lesson-cover-media${cover ? '' : ' no-image'}">
+          ${cover ? `<img src="${escapeHtml(cover)}" alt="${escapeHtml(lesson.lesson_name || `الدرس ${index + 1}`)}" loading="lazy" decoding="async">` : `<span class="lesson-cover-fallback" aria-hidden="true">${locked ? decorativeIcon(LEADERBOARD_LOCK_URL, 'lesson-cover-fallback-icon') : coded ? decorativeIcon(LEADERBOARD_KEY_URL, 'lesson-cover-fallback-icon') : '🔬'}</span>`}
+          <span class="lesson-card-status status-${escapeHtml(status)}"><span aria-hidden="true">${statusIcon}</span>${escapeHtml(statusText)}</span>
+          <span class="lesson-cover-title">${escapeHtml(lesson.lesson_name || `الدرس ${index + 1}`)}</span>
         </span>
-        <span class="lesson-choice-arrow" aria-hidden="true">${locked ? '—' : '←'}</span>
+        <span class="lesson-cover-body">
+          ${description ? `<small>${escapeHtml(description)}</small>` : ''}
+          <span class="lesson-card-best5" data-best5-lesson="${escapeHtml(lessonId)}">
+            <span class="lesson-best5-title"><img src="${LEADERBOARD_TROPHY_URL}" alt="" aria-hidden="true" loading="lazy" decoding="async"><span>أفضل 5</span></span>
+            <span class="lesson-best5-names"><span class="lesson-best5-empty">جارٍ التحميل…</span></span>
+          </span>
+          <span class="lesson-cover-action${locked ? ' is-disabled' : ''}${coded ? ' is-code' : ''}">${escapeHtml(action)} <span aria-hidden="true">${locked ? decorativeIcon(LEADERBOARD_LOCK_URL, 'lesson-action-icon') : coded ? decorativeIcon(LEADERBOARD_KEY_URL, 'lesson-action-icon') : '←'}</span></span>
+        </span>
       </button>`;
   }).join('');
+
   const challengeMode = challengeSectionMode();
   const challengeLocked = challengeMode === 'locked';
+  const challengeCover = lessonCoverUrl(state.challengeCatalog?.section_card_image_url || '');
+  const challengeDescription = challengeLocked ? challengeSectionLockedMessage() : 'تحديات متنوعة من درس واحد أو عدة دروس';
   const challengeCard = challengeMode !== 'hidden' ? `
-    <button class="lesson-choice challenge-entry${challengeLocked ? ' is-locked' : ''}" type="button" data-open-challenges data-challenge-section-locked="${challengeLocked ? '1' : '0'}" title="${challengeLocked ? escapeHtml(challengeSectionLockedMessage()) : 'فتح التحديات'}">
-      <span class="lesson-choice-number">${challengeLocked ? '🔒' : '⚡'}</span>
-      <span class="lesson-choice-copy"><strong>التحدي${challengeLocked ? ' <span class="lesson-access-icon" aria-hidden="true">🔒</span>' : ''}</strong><small>${challengeLocked ? escapeHtml(challengeSectionLockedMessage()) : 'تحديات متنوعة من درس واحد أو عدة دروس'}</small></span>
-      <span class="lesson-choice-arrow" aria-hidden="true">${challengeLocked ? '—' : '←'}</span>
+    <button class="lesson-cover-card challenge-entry-card${challengeLocked ? ' is-locked' : ''}" type="button" data-open-challenges data-challenge-section-locked="${challengeLocked ? '1' : '0'}" title="${escapeHtml(challengeDescription)}">
+      <span class="lesson-cover-media challenge-cover-media${challengeCover ? '' : ' no-image'}">
+        ${challengeCover ? `<img src="${escapeHtml(challengeCover)}" alt="قسم التحدي" loading="lazy" decoding="async">` : '<span class="lesson-cover-fallback" aria-hidden="true">🏆</span>'}
+        <span class="lesson-card-status status-challenge"><img class="lesson-status-icon" src="${LEADERBOARD_TROPHY_URL}" alt="" aria-hidden="true" loading="lazy" decoding="async">التحدي</span>
+        <span class="lesson-cover-title">التحدي</span>
+      </span>
+      <span class="lesson-cover-body challenge-cover-body">
+        <small>${escapeHtml(challengeDescription)}</small>
+        <span class="lesson-cover-action challenge-action${challengeLocked ? ' is-disabled' : ''}">${challengeLocked ? escapeHtml(challengeSectionLockedMessage()) : 'دخول قسم التحدي'} <span aria-hidden="true">${challengeLocked ? decorativeIcon(LEADERBOARD_LOCK_URL, 'lesson-action-icon') : '←'}</span></span>
+      </span>
     </button>` : '';
-  $('#lessonGrid').innerHTML = lessonCards + challengeCard;
+
+  // قسم التحدي ثابت كأول بطاقة من جهة اليمين متى كان ظاهرًا.
+  $('#lessonGrid').innerHTML = challengeCard + lessonCards;
   $('#lessonAccessLegend').hidden = !lessons.some((lesson) => ['locked', 'code'].includes(lessonStatus(lesson)));
-  $('#lessonPickerTitle').textContent = challengeSectionVisible() ? 'اختر الدرس أو التحدي' : 'اختر الدرس';
+  $('#lessonPickerTitle').textContent = challengeSectionVisible() ? 'الدروس والتحدي' : 'الدروس';
   showView('lessonView');
+  setupLessonLeaderboard(lessons);
 }
 
 function showLoading(message, lessonId) {
@@ -2150,6 +2521,19 @@ $('#backFromGroupButton').addEventListener('click', () => {
   else if (!DIRECT_LESSON_ID && (getActiveLessons().length > 1 || challengeSectionVisible())) renderLessonPicker();
   else showView('loginView');
 });
+$('#lessonLeaderboardPrev')?.addEventListener('click', () => showLessonLeaderboardAt(state.lessonLeaderboardIndex - 1));
+$('#lessonLeaderboardNext')?.addEventListener('click', () => showLessonLeaderboardAt(state.lessonLeaderboardIndex + 1));
+$('#lessonLeaderboardDots')?.addEventListener('click', (event) => {
+  const dot = event.target.closest('[data-lesson-board-index]');
+  if (dot) showLessonLeaderboardAt(Number(dot.dataset.lessonBoardIndex || 0));
+});
+$('#challengeLeaderboardPrev')?.addEventListener('click', () => showChallengeLeaderboardAt(state.challengeLeaderboardIndex - 1));
+$('#challengeLeaderboardNext')?.addEventListener('click', () => showChallengeLeaderboardAt(state.challengeLeaderboardIndex + 1));
+$('#challengeLeaderboardDots')?.addEventListener('click', (event) => {
+  const dot = event.target.closest('[data-challenge-board-index]');
+  if (dot) showChallengeLeaderboardAt(Number(dot.dataset.challengeBoardIndex || 0));
+});
+
 $('#lessonGrid').addEventListener('click', (event) => {
   const challengeEntry = event.target.closest('[data-open-challenges]');
   if (challengeEntry) {
@@ -2339,3 +2723,7 @@ async function startApplication() {
 }
 
 startApplication();
+
+window.addEventListener('resize', () => {
+  document.querySelectorAll('.lesson-best5-names').forEach((target) => refreshLessonBestFiveMotion(target));
+});

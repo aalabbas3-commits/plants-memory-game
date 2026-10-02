@@ -1524,3 +1524,961 @@ body.home-active .app-shell { width: 100%; max-width: none; }
 /* v1.0.7 - never leave a blank white card face when an image fails */
 .memory-card-visual.image-failed{display:grid;place-items:center;background:linear-gradient(145deg,#eef7f2,#f8fbf9)}
 .memory-card-visual.image-failed .card-fallback{display:block}
+
+/* =========================================================
+   صفحة الدروس الجديدة – الإصدار 1.0.10
+   هوية بصرية مستمدة من الصفحة الرئيسية الحالية.
+   يمكن تعديل الهوية مستقبلًا من المتغيرات التالية فقط.
+   ========================================================= */
+:root {
+  --lesson-page-primary: #0b5a9e;
+  --lesson-page-primary-dark: #084a84;
+  --lesson-page-accent: #14a9df;
+  --lesson-page-bg: #f3f9fd;
+  --lesson-page-card: rgba(255,255,255,.96);
+  --lesson-page-line: #d8e6f2;
+  --lesson-page-muted: #62778a;
+  --lesson-page-radius: 22px;
+  --lesson-page-shadow: 0 14px 36px rgba(43,88,123,.11);
+}
+
+body:has(#lessonView:not([hidden])) {
+  background:
+    radial-gradient(circle at 4% 5%, rgba(127,220,214,.22), transparent 18rem),
+    radial-gradient(circle at 96% 3%, rgba(151,207,255,.22), transparent 20rem),
+    radial-gradient(circle at 88% 95%, rgba(245,210,130,.17), transparent 18rem),
+    linear-gradient(180deg, #f8fcff 0%, var(--lesson-page-bg) 100%);
+}
+
+.lesson-picker-screen {
+  width: min(1240px, calc(100% - 32px));
+  margin-inline: auto;
+  padding-bottom: 48px;
+}
+
+.lesson-page-header {
+  margin: 22px 0 18px;
+  border-color: var(--lesson-page-line);
+  background: var(--lesson-page-card);
+  box-shadow: var(--lesson-page-shadow);
+}
+.lesson-page-header .eyebrow { color: var(--lesson-page-accent); }
+.lesson-page-header h1 { color: var(--lesson-page-primary); }
+.lesson-page-header p:last-child { color: var(--lesson-page-muted); }
+.lesson-page-header .secondary-button {
+  color: var(--lesson-page-primary);
+  background: #e9f5fd;
+}
+
+.lesson-library {
+  padding: 0;
+}
+
+.lesson-cover-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.lesson-cover-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 360px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--lesson-page-line);
+  border-radius: var(--lesson-page-radius);
+  color: var(--ink);
+  background: var(--lesson-page-card);
+  text-align: right;
+  box-shadow: var(--lesson-page-shadow);
+  cursor: pointer;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.lesson-cover-card:hover,
+.lesson-cover-card:focus-visible {
+  transform: translateY(-3px);
+  border-color: #9dc7e6;
+  box-shadow: 0 19px 42px rgba(43,88,123,.16);
+  outline: none;
+}
+.lesson-cover-card.current { border-color: #88bde3; }
+
+.lesson-cover-media {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: linear-gradient(145deg, #e8f5fb, #f8fcff);
+}
+.lesson-cover-media::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 28%;
+  background: linear-gradient(180deg, transparent, rgba(8,54,88,.09));
+  pointer-events: none;
+}
+.lesson-cover-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.lesson-cover-media.no-image {
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 25% 25%, rgba(20,169,223,.2), transparent 34%),
+    linear-gradient(145deg, #edf8fe, #f9fcff);
+}
+.lesson-cover-fallback {
+  font-size: clamp(3.1rem, 7vw, 5.4rem);
+  filter: drop-shadow(0 8px 18px rgba(28,88,128,.15));
+}
+
+.lesson-card-status {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 11px;
+  border: 1px solid rgba(255,255,255,.78);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(10,88,145,.9);
+  box-shadow: 0 6px 16px rgba(23,72,110,.14);
+  backdrop-filter: blur(5px);
+  font-size: .82rem;
+  font-weight: 900;
+}
+.lesson-card-status.status-locked { background: rgba(87,101,113,.9); }
+.lesson-card-status.status-code { background: rgba(187,133,17,.92); }
+.lesson-card-status.status-challenge { background: rgba(91,71,182,.92); }
+
+.lesson-cover-body {
+  display: grid;
+  grid-template-rows: auto minmax(3.1em, auto) auto;
+  gap: 9px;
+  flex: 1;
+  padding: 17px 18px 18px;
+}
+.lesson-cover-body > strong {
+  overflow: hidden;
+  color: var(--lesson-page-primary);
+  font-size: clamp(1.18rem, 2vw, 1.38rem);
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lesson-cover-body > small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--lesson-page-muted);
+  font-size: .92rem;
+  line-height: 1.75;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.lesson-cover-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 46px;
+  margin-top: 2px;
+  padding: 10px 14px;
+  border-radius: 13px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--lesson-page-primary), var(--lesson-page-accent));
+  box-shadow: 0 8px 18px rgba(11,90,158,.17);
+  font-weight: 900;
+}
+.lesson-cover-action.is-code {
+  background: linear-gradient(135deg, #b57b09, #daa933);
+}
+.lesson-cover-action.is-disabled {
+  color: #f7f9fb;
+  background: #8b9aa5;
+  box-shadow: none;
+}
+
+.lesson-cover-card.is-locked {
+  opacity: .84;
+  border-color: #d7dde2;
+}
+.lesson-cover-card.is-locked .lesson-cover-media img {
+  filter: saturate(.55) brightness(.82);
+}
+.lesson-cover-card.is-coded { border-color: #ecd79d; }
+
+.challenge-entry-card {
+  border-color: #ded7fa;
+  background: linear-gradient(180deg, rgba(255,255,255,.97), rgba(248,246,255,.98));
+}
+.challenge-entry-card:hover,
+.challenge-entry-card:focus-visible { border-color: #b7abea; }
+.challenge-action {
+  background: linear-gradient(135deg, #5140b5, #775be1);
+}
+
+#lessonAccessLegend.lesson-access-legend {
+  margin-top: 16px;
+  border-color: var(--lesson-page-line);
+  color: var(--lesson-page-muted);
+  background: rgba(255,255,255,.82);
+}
+
+@media (max-width: 1060px) {
+  .lesson-cover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .lesson-picker-screen { width: min(100% - 18px, 1240px); padding-bottom: 28px; }
+  .lesson-page-header { margin: 10px 0 12px; padding: 18px; border-radius: 18px; }
+  .lesson-cover-grid { grid-template-columns: 1fr; gap: 12px; }
+  .lesson-cover-card {
+    min-height: 0;
+    border-radius: 18px;
+  }
+  .lesson-cover-media { aspect-ratio: 16 / 8.7; }
+  .lesson-cover-body { padding: 14px 15px 15px; gap: 7px; }
+  .lesson-cover-body > strong { font-size: 1.15rem; }
+  .lesson-cover-body > small { font-size: .88rem; line-height: 1.6; }
+  .lesson-cover-action { min-height: 44px; }
+  .lesson-card-status { top: 9px; right: 9px; min-height: 31px; padding: 5px 9px; font-size: .76rem; }
+}
+
+@media (max-width: 420px) {
+  .lesson-page-header p:last-child { font-size: .9rem; }
+  .lesson-cover-media { aspect-ratio: 3 / 1.75; }
+  .lesson-cover-body > small { -webkit-line-clamp: 2; }
+}
+
+
+/* =========================================================
+   صفحة الدروس 1.0.11 — أفضل 10 المتحركة + أفضل 5 المختصرة
+   ========================================================= */
+.lesson-page-leaderboard {
+  margin-bottom: 18px;
+  padding: 18px 20px 14px;
+  border: 1px solid var(--lesson-page-line);
+  border-radius: var(--lesson-page-radius);
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--lesson-page-shadow);
+}
+.lesson-board-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.lesson-board-heading .eyebrow { margin: 0 0 3px; color: var(--lesson-page-accent); }
+.lesson-board-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  color: var(--lesson-page-primary);
+  font-size: clamp(1.25rem, 2.5vw, 1.65rem);
+}
+.lesson-board-heading h2 img { width: 34px; height: 34px; object-fit: contain; }
+.lesson-board-heading p:last-child { margin: 4px 0 0; color: var(--lesson-page-muted); font-size: .87rem; }
+#lessonLeaderboardLesson { color: var(--lesson-page-primary-dark); }
+#lessonLeaderboardMeta::before { content: ' · '; }
+.lesson-board-nav { display: flex; gap: 7px; flex: 0 0 auto; }
+.lesson-board-nav button {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #c8ddea;
+  border-radius: 13px;
+  color: var(--lesson-page-primary);
+  background: #eef7fd;
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+.lesson-page-leaderboard-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+.lesson-page-leaderboard-list li {
+  display: grid;
+  grid-template-columns: 31px minmax(0,1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 9px;
+  border-radius: 11px;
+  background: #f3f8fc;
+}
+.lesson-leaderboard-rank {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  color: #416078;
+  background: #e3edf4;
+  font-size: .8rem;
+  font-weight: 900;
+}
+.lesson-page-leaderboard-list li:nth-child(1) .lesson-leaderboard-rank { color: #715000; background: #ffd86b; }
+.lesson-page-leaderboard-list li:nth-child(2) .lesson-leaderboard-rank { color: #475767; background: #dfe7ed; }
+.lesson-page-leaderboard-list li:nth-child(3) .lesson-leaderboard-rank { color: #744116; background: #efb47d; }
+.lesson-leaderboard-name {
+  overflow: hidden;
+  color: #174f7d;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lesson-leaderboard-result { display: flex; align-items: baseline; gap: 6px; color: var(--lesson-page-primary); white-space: nowrap; }
+.lesson-leaderboard-result strong { font-size: .84rem; }
+.lesson-leaderboard-result small { color: var(--lesson-page-muted); font-size: .72rem; }
+.lesson-leaderboard-empty { grid-column: 1 / -1 !important; place-items: center; min-height: 64px !important; color: var(--lesson-page-muted); text-align: center; }
+.lesson-leaderboard-dots { display: flex; justify-content: center; gap: 7px; min-height: 12px; margin-top: 12px; }
+.lesson-leaderboard-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: #cbdbe7;
+  cursor: pointer;
+  transition: width .18s ease, background .18s ease;
+}
+.lesson-leaderboard-dot.active { width: 25px; background: var(--lesson-page-primary); }
+
+.lesson-card-best5 {
+  display: grid;
+  gap: 6px;
+  margin-top: 3px;
+  padding-top: 9px;
+  border-top: 1px solid #e7eef4;
+}
+.lesson-best5-title {
+  color: #8c6a13;
+  font-size: .78rem;
+  font-weight: 900;
+}
+.lesson-best5-names {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+.lesson-best5-name {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 5px 4px;
+  overflow: hidden;
+  border-radius: 8px;
+  color: #315b79;
+  background: #f4f8fb;
+  font-size: .68rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lesson-best5-name b { color: var(--lesson-page-primary); font-size: .65rem; }
+.lesson-best5-empty { color: var(--lesson-page-muted); font-size: .72rem; }
+.challenge-entry-card .lesson-card-best5 { display: none; }
+
+@media (max-width: 680px) {
+  .lesson-page-leaderboard { margin-bottom: 12px; padding: 14px 13px 11px; border-radius: 18px; }
+  .lesson-board-heading { align-items: flex-start; gap: 10px; }
+  .lesson-board-heading h2 { font-size: 1.2rem; }
+  .lesson-board-heading h2 img { width: 29px; height: 29px; }
+  .lesson-board-heading p:last-child { font-size: .76rem; line-height: 1.55; }
+  .lesson-board-nav button { width: 37px; height: 37px; border-radius: 11px; }
+  .lesson-page-leaderboard-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 6px; }
+  .lesson-page-leaderboard-list li { min-height: 34px; padding: 4px 7px; }
+  .lesson-leaderboard-result strong { font-size: .78rem; }
+  .lesson-leaderboard-result small { display: none; }
+  #lessonLeaderboardMeta { display: none; }
+  .lesson-best5-names { grid-template-columns: repeat(5, minmax(0,1fr)); }
+  .lesson-best5-name { padding: 4px 2px; font-size: .63rem; }
+  .lesson-leaderboard-name { font-size: .73rem; }
+  .lesson-leaderboard-rank { width: 24px; height: 24px; font-size: .7rem; }
+  .lesson-page-leaderboard-list li { grid-template-columns: 24px minmax(0,1fr) auto; gap: 5px; }
+}
+
+@media (max-width: 420px) {
+  .lesson-board-heading h2 img { display: none; }
+  .lesson-board-nav { gap: 4px; }
+  .lesson-board-nav button { width: 34px; height: 34px; }
+  .lesson-best5-name b { display: none; }
+}
+
+/* =========================================================
+   صفحة الدروس 1.0.12 — تحسين المساحة والبطاقات والترتيب
+   ========================================================= */
+body:has(#lessonView:not([hidden])) .app-shell {
+  width: min(1500px, calc(100% - 24px));
+}
+.lesson-picker-screen {
+  width: 100%;
+  padding-top: 14px;
+}
+.lesson-page-header {
+  min-height: 0;
+  margin: 6px 0 14px;
+  padding: 14px 22px;
+  border-radius: 20px;
+}
+.lesson-page-header h1 {
+  font-size: clamp(1.75rem, 3vw, 2.45rem);
+  line-height: 1.2;
+}
+.lesson-page-header .eyebrow { margin-bottom: 3px; }
+.lesson-page-header p:last-child { margin-top: 4px; }
+.lesson-page-header .secondary-button { min-height: 44px; padding: 9px 16px; }
+
+.lesson-cover-grid { gap: 16px; }
+.lesson-cover-card { min-height: 315px; }
+.lesson-cover-media { aspect-ratio: 3 / 1.72; }
+.lesson-cover-media::after {
+  height: 46%;
+  background: linear-gradient(180deg, transparent 0%, rgba(4,41,69,.68) 100%);
+}
+.lesson-cover-title {
+  position: absolute;
+  z-index: 2;
+  right: 15px;
+  bottom: 12px;
+  left: 15px;
+  overflow: hidden;
+  color: #fff;
+  font-size: clamp(1.15rem, 1.8vw, 1.42rem);
+  font-weight: 900;
+  line-height: 1.35;
+  text-align: right;
+  text-shadow: 0 2px 8px rgba(0,0,0,.48);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lesson-cover-body {
+  grid-template-rows: auto auto auto;
+  align-content: start;
+  gap: 10px;
+  padding: 13px 15px 15px;
+}
+.lesson-cover-body > strong { display: none; }
+.lesson-cover-body > small {
+  min-height: 1.6em;
+  font-size: .86rem;
+  line-height: 1.6;
+  -webkit-line-clamp: 1;
+}
+.lesson-card-best5 {
+  order: 2;
+  gap: 7px;
+  margin-top: 0;
+  padding: 9px 10px;
+  border: 1px solid #e4edf4;
+  border-radius: 12px;
+  background: #f9fcfe;
+}
+.lesson-best5-title {
+  display: block;
+  font-size: .8rem;
+  text-align: right;
+}
+.lesson-best5-names { gap: 5px; }
+.lesson-best5-name {
+  min-height: 31px;
+  padding: 5px 6px;
+  border: 1px solid #e6eef4;
+  background: #fff;
+  font-size: .72rem;
+}
+.lesson-cover-action {
+  order: 3;
+  width: min(190px, 100%);
+  min-height: 42px;
+  margin: 0 auto;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: .9rem;
+}
+.challenge-cover-body {
+  grid-template-rows: 1fr auto;
+  align-content: stretch;
+}
+.challenge-entry-card .lesson-cover-action { width: min(190px, 100%); }
+
+.lesson-page-leaderboard[hidden] { display: none !important; }
+.lesson-board-trophy { font-size: 1.3em; line-height: 1; }
+
+@media (min-width: 1280px) {
+  .lesson-cover-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lesson-page-leaderboard { padding-inline: 24px; }
+}
+
+@media (max-width: 680px) {
+  body:has(#lessonView:not([hidden])) .app-shell { width: min(100% - 14px, 1500px); }
+  .lesson-picker-screen { padding-top: 7px; }
+  .lesson-page-header { padding: 12px 14px; margin: 3px 0 10px; }
+  .lesson-page-header h1 { font-size: 1.8rem; }
+  .lesson-page-header p:last-child { font-size: .84rem; }
+  .lesson-cover-media { aspect-ratio: 16 / 8.4; }
+  .lesson-cover-title { right: 12px; bottom: 10px; left: 12px; font-size: 1.2rem; }
+  .lesson-cover-body { padding: 11px 12px 13px; }
+  .lesson-cover-body > small { min-height: 0; -webkit-line-clamp: 2; }
+  .lesson-best5-names { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .lesson-best5-name { min-height: 29px; padding: 4px 3px; font-size: .65rem; }
+  .lesson-cover-action { width: min(180px, 100%); min-height: 40px; }
+}
+
+/* =========================================================
+   صفحة الدروس 1.0.13 — تحسين هوية لوحات المتصدرين
+   ========================================================= */
+.lesson-board-heading-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.lesson-board-trophy-image {
+  width: 78px;
+  height: 78px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+.lesson-board-copy { min-width: 0; }
+.lesson-board-copy .eyebrow { margin-bottom: 1px; }
+.lesson-board-heading #lessonLeaderboardLesson {
+  margin: 0;
+  color: var(--lesson-page-primary);
+  font-size: clamp(2rem, 3.3vw, 3rem);
+  font-weight: 950;
+  line-height: 1.08;
+}
+.lesson-board-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  margin: 5px 0 0 !important;
+  color: var(--lesson-page-muted);
+  font-size: .88rem !important;
+}
+.lesson-board-subtitle > strong {
+  color: var(--lesson-page-primary-dark);
+  font-size: 1rem;
+  font-weight: 900;
+}
+#lessonLeaderboardMeta::before { content: ' · '; }
+
+.lesson-best5-title {
+  display: flex !important;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  color: #8c6a13;
+  font-size: 1rem !important;
+  font-weight: 950;
+  line-height: 1.2;
+}
+.lesson-best5-title img {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+.lesson-best5-names {
+  gap: 7px !important;
+}
+.lesson-best5-name {
+  min-height: 38px !important;
+  padding: 7px 8px !important;
+  font-size: .88rem !important;
+  font-weight: 900 !important;
+  line-height: 1.25;
+}
+
+@media (max-width: 680px) {
+  .lesson-board-heading-main { gap: 10px; align-items: flex-start; }
+  .lesson-board-trophy-image { width: 58px; height: 58px; }
+  .lesson-board-heading #lessonLeaderboardLesson { font-size: clamp(1.65rem, 8vw, 2.1rem); }
+  .lesson-board-subtitle { font-size: .75rem !important; }
+  .lesson-board-subtitle > strong { font-size: .86rem; }
+  .lesson-best5-title { font-size: .9rem !important; }
+  .lesson-best5-title img { width: 27px; height: 27px; }
+  .lesson-best5-name { min-height: 36px !important; padding: 6px 5px !important; font-size: .82rem !important; }
+}
+
+@media (max-width: 420px) {
+  .lesson-board-trophy-image { width: 50px; height: 50px; }
+  .lesson-best5-name { font-size: .78rem !important; }
+}
+
+
+/* =========================================================
+   صفحة الدروس 1.0.14 — تكبير أفضل 5 + حركة تلقائية عند الحاجة
+   ========================================================= */
+.lesson-card-best5 { overflow: hidden; }
+.lesson-best5-title {
+  gap: 9px !important;
+  font-size: 1.06rem !important;
+}
+.lesson-best5-title img {
+  width: 34px !important;
+  height: 34px !important;
+}
+.lesson-best5-names {
+  position: relative;
+  display: block !important;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  direction: ltr;
+  border-radius: 9px;
+}
+.lesson-best5-track {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: max-content;
+  min-width: 100%;
+  direction: rtl;
+  will-change: transform;
+}
+.lesson-best5-name {
+  flex: 1 0 auto;
+  min-width: max-content !important;
+  min-height: 42px !important;
+  padding: 8px 13px !important;
+  border-radius: 9px !important;
+  font-size: 1rem !important;
+  font-weight: 950 !important;
+  line-height: 1.35 !important;
+  text-align: center;
+  white-space: nowrap;
+}
+.lesson-best5-names:not(.is-scrolling) .lesson-best5-track {
+  width: 100%;
+}
+.lesson-best5-names:not(.is-scrolling) .lesson-best5-name {
+  min-width: 0 !important;
+  white-space: normal;
+}
+.lesson-best5-names.is-scrolling .lesson-best5-track {
+  animation: lessonBestFiveMove var(--best5-duration, 11s) linear infinite;
+}
+.lesson-best5-names.is-scrolling:hover .lesson-best5-track,
+.lesson-best5-names.is-scrolling:focus-within .lesson-best5-track,
+.lesson-best5-names.is-scrolling:active .lesson-best5-track {
+  animation-play-state: paused;
+}
+@keyframes lessonBestFiveMove {
+  0%, 10% { transform: translateX(calc(-1 * var(--best5-shift, 0px))); }
+  90%, 100% { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-best5-names.is-scrolling {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .lesson-best5-names.is-scrolling .lesson-best5-track {
+    animation: none !important;
+  }
+}
+@media (max-width: 680px) {
+  .lesson-best5-title { font-size: 1rem !important; }
+  .lesson-best5-title img { width: 31px !important; height: 31px !important; }
+  .lesson-best5-name {
+    min-height: 40px !important;
+    padding: 7px 11px !important;
+    font-size: .94rem !important;
+  }
+}
+@media (max-width: 420px) {
+  .lesson-best5-name { font-size: .9rem !important; }
+}
+
+
+/* =========================================================
+   صفحة الدروس 1.0.15 — حركة أفضل 5 المستمرة + أيقونات القفل/المفتاح
+   ========================================================= */
+.ui-inline-icon,
+.legend-state-icon,
+.lesson-choice-icon,
+.lesson-access-icon-image,
+.lesson-status-icon,
+.lesson-action-icon,
+.lesson-cover-fallback-icon {
+  display: inline-block;
+  width: 1.18em;
+  height: 1.18em;
+  object-fit: contain;
+  vertical-align: middle;
+}
+.legend-state-icon {
+  width: 1.22rem;
+  height: 1.22rem;
+  margin-inline-end: .28rem;
+}
+.lesson-choice-number {
+  overflow: hidden;
+}
+.lesson-choice-number img {
+  width: 26px;
+  height: 26px;
+}
+.lesson-access-icon {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: .35rem;
+}
+.lesson-access-icon-image,
+.lesson-status-icon,
+.lesson-action-icon {
+  width: 1.05em;
+  height: 1.05em;
+}
+.lesson-cover-fallback-icon {
+  width: 1.22em;
+  height: 1.22em;
+  filter: drop-shadow(0 8px 18px rgba(28,88,128,.15));
+}
+.lesson-card-status > span[aria-hidden="true"],
+.lesson-cover-action > span[aria-hidden="true"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.lesson-best5-title img {
+  width: 34px !important;
+  height: 34px !important;
+}
+.lesson-best5-names {
+  direction: ltr;
+}
+.lesson-best5-track {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: max-content;
+  min-width: 100%;
+  will-change: transform;
+}
+.lesson-best5-seq {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex: 0 0 auto;
+  direction: rtl;
+}
+.lesson-best5-name {
+  flex: 1 0 auto;
+  min-width: max-content !important;
+}
+.lesson-best5-names:not(.is-scrolling) .lesson-best5-track {
+  width: 100%;
+  min-width: 0;
+}
+.lesson-best5-names:not(.is-scrolling) .lesson-best5-seq {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: 100%;
+  min-width: 0;
+}
+.lesson-best5-names:not(.is-scrolling) .lesson-best5-seq.is-duplicate {
+  display: none;
+}
+.lesson-best5-names:not(.is-scrolling) .lesson-best5-name {
+  min-width: 0 !important;
+  white-space: normal;
+}
+.lesson-best5-names.is-scrolling .lesson-best5-track {
+  animation: lessonBestFiveLoop var(--best5-duration, 16s) linear infinite;
+}
+.lesson-best5-names.is-scrolling:hover .lesson-best5-track,
+.lesson-best5-names.is-scrolling:focus-within .lesson-best5-track,
+.lesson-best5-names.is-scrolling:active .lesson-best5-track {
+  animation-play-state: paused;
+}
+@keyframes lessonBestFiveLoop {
+  from { transform: translateX(calc(-1 * var(--best5-loop-width, 0px))); }
+  to { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-best5-names.is-scrolling {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .lesson-best5-names.is-scrolling .lesson-best5-track {
+    animation: none !important;
+  }
+}
+
+
+/* =========================================================
+   1.0.16 — إصلاح أحجام أيقونات الحالة + قياس أفضل 5 للحركة
+   ========================================================= */
+
+/* صورة الغلاف وحدها هي التي تملأ مساحة الصورة.
+   أيقونات القفل/المفتاح/الكأس داخل الشارات تبقى بحجمها الطبيعي. */
+.lesson-cover-media > img:not(.lesson-status-icon) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.lesson-card-status img.lesson-status-icon,
+.lesson-cover-action img.lesson-action-icon,
+.lesson-choice-number img.lesson-choice-icon,
+.lesson-access-icon img.lesson-access-icon-image {
+  flex: 0 0 auto !important;
+  width: 20px !important;
+  height: 20px !important;
+  max-width: 20px !important;
+  max-height: 20px !important;
+  object-fit: contain !important;
+}
+.lesson-card-status.status-challenge img.lesson-status-icon {
+  width: 21px !important;
+  height: 21px !important;
+  max-width: 21px !important;
+  max-height: 21px !important;
+}
+.lesson-cover-fallback img.lesson-cover-fallback-icon {
+  width: 74px !important;
+  height: 74px !important;
+  max-width: 74px !important;
+  max-height: 74px !important;
+  object-fit: contain !important;
+}
+
+/* أثناء القياس نعرض مجموعة الأسماء بعرضها الطبيعي،
+   حتى نقرر بدقة هل تحتاج إلى الشريط المتحرك أم لا. */
+.lesson-best5-names.is-measuring .lesson-best5-track {
+  width: max-content !important;
+  min-width: 0 !important;
+  animation: none !important;
+}
+.lesson-best5-names.is-measuring .lesson-best5-seq {
+  display: flex !important;
+  width: max-content !important;
+  min-width: max-content !important;
+}
+.lesson-best5-names.is-measuring .lesson-best5-seq.is-duplicate {
+  display: none !important;
+}
+.lesson-best5-names.is-measuring .lesson-best5-name {
+  min-width: max-content !important;
+  white-space: nowrap !important;
+}
+
+/* في الحالة الثابتة لا نجبر الاسم على أعمدة ضيقة جدًا. */
+.lesson-best5-names:not(.is-scrolling):not(.is-measuring) .lesson-best5-seq {
+  display: flex !important;
+  justify-content: space-evenly;
+  gap: 7px;
+}
+.lesson-best5-names:not(.is-scrolling):not(.is-measuring) .lesson-best5-name {
+  flex: 1 1 0;
+  min-width: 0 !important;
+  white-space: normal;
+}
+
+
+/* =========================================================
+   1.0.17 — ترتيب أفضل 10 في عمودين متسلسلين
+   ========================================================= */
+.lesson-page-leaderboard-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-rows: repeat(5, auto);
+  grid-auto-flow: column;
+  direction: rtl;
+}
+.lesson-page-leaderboard-list li { direction: rtl; }
+.lesson-page-leaderboard-list li:nth-child(1) .lesson-leaderboard-rank,
+.lesson-page-leaderboard-list li:nth-child(2) .lesson-leaderboard-rank,
+.lesson-page-leaderboard-list li:nth-child(3) .lesson-leaderboard-rank {
+  color: #6f5200 !important;
+  background: #f5cf63 !important;
+}
+.lesson-page-leaderboard-list li:nth-child(n+4) .lesson-leaderboard-rank {
+  color: #416078 !important;
+  background: #e3edf4 !important;
+}
+@media (max-width: 680px) {
+  .lesson-page-leaderboard-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(5, auto);
+    grid-auto-flow: column;
+  }
+}
+
+
+/* =========================================================
+   1.0.18 — صفحة التحديات مطابقة لهيكل صفحة الدروس 1.0.17
+   ========================================================= */
+.challenge-page-header,
+.challenge-page-leaderboard,
+.challenge-library {
+  width: 100%;
+}
+.challenge-cover-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+.challenge-cover-card {
+  min-height: 360px;
+}
+.challenge-card-body {
+  grid-template-rows: auto auto minmax(3.1em, auto) auto;
+}
+.challenge-linked-lessons {
+  display: block;
+  overflow: hidden;
+  color: var(--lesson-page-muted);
+  font-size: .82rem;
+  line-height: 1.55;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.challenge-linked-lessons strong {
+  color: var(--lesson-page-primary);
+}
+.challenge-cover-card .lesson-card-best5 {
+  display: grid;
+}
+#challengeAccessLegend.lesson-access-legend {
+  margin-top: 16px;
+  border-color: var(--lesson-page-line);
+  color: var(--lesson-page-muted);
+  background: rgba(255,255,255,.82);
+}
+@media (max-width: 1060px) {
+  .challenge-cover-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+  .challenge-cover-grid { grid-template-columns: 1fr; gap: 12px; }
+  .challenge-cover-card { min-height: 0; }
+  .challenge-linked-lessons { font-size: .78rem; white-space: normal; }
+}

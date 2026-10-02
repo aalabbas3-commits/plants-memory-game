@@ -23,7 +23,7 @@
   <meta name="twitter:image" content="https://aalabbas3-commits.github.io/plants-memory-game/assets/game-share-card-v2.jpg">
   <link rel="preconnect" href="https://script.google.com">
   <link rel="preconnect" href="https://script.googleusercontent.com">
-  <link rel="stylesheet" href="styles.css?v=1.0.7">
+  <link rel="stylesheet" href="styles.css?v=1.0.18">
 </head>
 <body class="home-active" data-theme="THEME_05" data-display-mode="normal">
   <main class="app-shell">
@@ -43,7 +43,7 @@
         </header>
 
         <aside class="home-leaderboard" aria-labelledby="leaderboardTitle">
-          <h2 id="leaderboardTitle"><img class="leaderboard-title-icon" src="assets/home-trophy.webp" alt="" aria-hidden="true" decoding="async"> أفضل 10 نتائج</h2>
+          <h2 id="leaderboardTitle"><img class="leaderboard-title-icon" src="https://aalabbas3-commits.github.io/plants-memory-game/assets/leaderboard/trophy.webp" alt="" aria-hidden="true" decoding="async"> أفضل 10 نتائج</h2>
           <p id="leaderboardLesson" class="leaderboard-lesson">حسب الإجابات الصحيحة ثم الزمن</p>
           <ol id="leaderboardList" class="leaderboard-list" aria-live="polite">
             <li class="leaderboard-empty">جارٍ تحميل النتائج…</li>
@@ -92,36 +92,86 @@
       <footer>إعداد الأستاذ علوي العباس · مدرسة جرير الابتدائية بالقطيف</footer>
     </section>
 
-    <section id="lessonView" class="screen" hidden>
-      <header class="lesson-header">
+    <section id="lessonView" class="screen lesson-picker-screen" hidden>
+      <header class="lesson-header lesson-page-header">
         <div>
-          <p class="eyebrow">الخطوة الثانية</p>
-          <h1 id="lessonPickerTitle">اختر الدرس</h1>
+          <p class="eyebrow">اختر محتواك</p>
+          <h1 id="lessonPickerTitle">الدروس</h1>
           <p>اختر الدرس الذي تريد اللعب فيه يا <strong id="lessonPlayerName"></strong>.</p>
         </div>
         <button id="backFromLessonsButton" class="secondary-button" type="button">العودة إلى البيانات</button>
       </header>
-      <div id="lessonGrid" class="lesson-grid" aria-live="polite"></div>
+
+      <section id="lessonLeaderboard" class="lesson-page-leaderboard" aria-labelledby="lessonLeaderboardLesson">
+        <div class="lesson-board-heading">
+          <div class="lesson-board-heading-main">
+            <img class="lesson-board-trophy-image" src="https://aalabbas3-commits.github.io/plants-memory-game/assets/leaderboard/trophy.webp" alt="" aria-hidden="true" decoding="async">
+            <div class="lesson-board-copy">
+              <p class="eyebrow">لوحة المتصدرين</p>
+              <h2 id="lessonLeaderboardLesson">الدرس</h2>
+              <p class="lesson-board-subtitle"><strong>أفضل 10 نتائج</strong><span id="lessonLeaderboardMeta"></span></p>
+            </div>
+          </div>
+          <div class="lesson-board-nav" aria-label="التنقل بين الدروس">
+            <button id="lessonLeaderboardPrev" type="button" aria-label="الدرس السابق">→</button>
+            <button id="lessonLeaderboardNext" type="button" aria-label="الدرس التالي">←</button>
+          </div>
+        </div>
+        <ol id="lessonLeaderboardList" class="lesson-page-leaderboard-list" aria-live="polite">
+          <li class="lesson-leaderboard-empty">جارٍ تحميل النتائج…</li>
+        </ol>
+        <div id="lessonLeaderboardDots" class="lesson-leaderboard-dots" aria-label="الدروس"></div>
+      </section>
+
+      <section class="lesson-library" aria-label="الدروس والتحدي">
+        <div id="lessonGrid" class="lesson-grid lesson-cover-grid" aria-live="polite"></div>
+      </section>
+
       <div id="lessonAccessLegend" class="lesson-access-legend" hidden>
-        <span><span aria-hidden="true">🔒</span> درس مغلق</span>
-        <span><span aria-hidden="true">🔑</span> يتطلب كود دخول</span>
+        <span><img class="legend-state-icon" src="https://aalabbas3-commits.github.io/plants-memory-game/assets/leaderboard/lock.webp" alt="" aria-hidden="true" decoding="async"> درس مغلق</span>
+        <span><img class="legend-state-icon" src="https://aalabbas3-commits.github.io/plants-memory-game/assets/leaderboard/key.webp" alt="" aria-hidden="true" decoding="async"> يتطلب كود دخول</span>
       </div>
     </section>
 
 
-    <section id="challengeView" class="screen" hidden>
-      <header class="lesson-header">
+    <section id="challengeView" class="screen lesson-picker-screen" hidden>
+      <header class="lesson-header lesson-page-header challenge-page-header">
         <div>
           <p class="eyebrow">قسم التحدي</p>
-          <h1>اختر التحدي</h1>
+          <h1>التحديات</h1>
           <p>اختر التحدي الذي تريد خوضه يا <strong id="challengePlayerName"></strong>.</p>
         </div>
         <button id="backFromChallengesButton" class="secondary-button" type="button">العودة إلى الدروس</button>
       </header>
-      <div id="challengeGrid" class="lesson-grid challenge-grid" aria-live="polite"></div>
+
+      <section id="challengeLeaderboard" class="lesson-page-leaderboard challenge-page-leaderboard" aria-labelledby="challengeLeaderboardChallenge" hidden>
+        <div class="lesson-board-heading">
+          <div class="lesson-board-heading-main">
+            <img class="lesson-board-trophy-image" src="https://aalabbas3-commits.github.io/plants-memory-game/assets/leaderboard/trophy.webp" alt="" aria-hidden="true" decoding="async">
+            <div class="lesson-board-copy">
+              <p class="eyebrow">لوحة المتصدرين</p>
+              <h2 id="challengeLeaderboardChallenge">التحدي</h2>
+              <p class="lesson-board-subtitle"><strong>أفضل 10 نتائج</strong><span id="challengeLeaderboardMeta"></span></p>
+            </div>
+          </div>
+          <div class="lesson-board-nav" aria-label="التنقل بين التحديات">
+            <button id="challengeLeaderboardPrev" type="button" aria-label="التحدي السابق">→</button>
+            <button id="challengeLeaderboardNext" type="button" aria-label="التحدي التالي">←</button>
+          </div>
+        </div>
+        <ol id="challengeLeaderboardList" class="lesson-page-leaderboard-list" aria-live="polite">
+          <li class="lesson-leaderboard-empty">جارٍ تحميل النتائج…</li>
+        </ol>
+        <div id="challengeLeaderboardDots" class="lesson-leaderboard-dots" aria-label="التحديات"></div>
+      </section>
+
+      <section class="lesson-library challenge-library" aria-label="التحديات">
+        <div id="challengeGrid" class="lesson-grid lesson-cover-grid challenge-cover-grid" aria-live="polite"></div>
+      </section>
+
       <div id="challengeAccessLegend" class="lesson-access-legend" hidden>
-        <span><span aria-hidden="true">🔒</span> تحدٍ مغلق</span>
-        <span><span aria-hidden="true">🔑</span> يتطلب كود دخول</span>
+        <span><img class="legend-state-icon" src="https://aalabbas3-commits.github.io/plants-memory-game/assets/leaderboard/lock.webp" alt="" aria-hidden="true" decoding="async"> تحدٍ مغلق</span>
+        <span><img class="legend-state-icon" src="https://aalabbas3-commits.github.io/plants-memory-game/assets/leaderboard/key.webp" alt="" aria-hidden="true" decoding="async"> يتطلب كود دخول</span>
       </div>
     </section>
 
@@ -393,6 +443,6 @@
       </div>
     </form>
   </dialog>
-  <script src="app.js?v=1.0.7" defer></script>
+  <script src="app.js?v=1.0.18" defer></script>
 </body>
 </html>
