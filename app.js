@@ -1,5 +1,5 @@
 'use strict';
-// الإصدار: 1.0.18
+// الإصدار: 1.0.19
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyfeSB3gvBHTfHuCwozfPG-GUflo6AmJmer8HJSUStmY_IdCutZWJdnHTsVfIfdpHfc/exec';
 const DEFAULT_LESSON_ID = 'PLANTS_01';
@@ -123,7 +123,7 @@ function showView(id) {
   window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   if (id === 'loginView') {
     renderHomeScienceIcons();
-    if (state.content) window.setTimeout(() => loadLeaderboard(state.selectedLessonId), 0);
+    if (state.content) window.setTimeout(() => loadHomeLeaderboard(), 0);
   }
 }
 
@@ -700,6 +700,88 @@ function renderLeaderboard(rows = [], lessonName = '') {
     </li>`).join('');
 }
 
+
+function homeLeaderboardStudentKey(row = {}) {
+  const name = String(row.student_name || '').trim().toLowerCase();
+  const className = String(row.class_name || '').trim().toLowerCase();
+  const school = String(row.school_name || row.school || '').trim().toLowerCase();
+  return [name, className, school].filter(Boolean).join('|') || name || Math.random().toString(36);
+}
+
+function renderHomeLeaderboard(rows = []) {
+  const list = $('#leaderboardList');
+  if (!list) return;
+  $('#leaderboardLesson').textContent = 'حسب الإجابات الصحيحة ثم الزمن';
+  if (!rows.length) {
+    list.innerHTML = '<li class="leaderboard-empty">لا توجد نتائج مكتملة بعد — كن أول المتصدرين!</li>';
+    return;
+  }
+  list.innerHTML = rows.slice(0, 10).map((row) => {
+    const student = escapeHtml(row.student_name || 'طالب');
+    const lesson = escapeHtml(row.lesson_name || '');
+    const nameTitle = lesson ? `${student} / ${lesson}` : student;
+    return `
+    <li>
+      <span class="leaderboard-name" title="${nameTitle}"><strong>${student}</strong>${lesson ? `<small class="leaderboard-row-lesson"> / ${lesson}</small>` : ''}</span>
+      <span class="leaderboard-score" title="${escapeHtml(String(row.score || 0))} درجة خلال ${escapeHtml(formatLeaderboardDuration(row.duration_seconds))}">
+        <span class="leaderboard-points">${escapeHtml(String(row.score || 0))} درجة</span>
+        <span class="leaderboard-duration">${escapeHtml(formatLeaderboardDuration(row.duration_seconds))}</span>
+      </span>
+    </li>`;
+  }).join('');
+}
+
+async function loadHomeLeaderboard(forceRefresh = false) {
+  const list = $('#leaderboardList');
+  if (!list || !state.content) return [];
+  const lessons = getActiveLessons().filter((lesson) => lessonStatus(lesson) !== 'hidden');
+  if (!lessons.length) {
+    renderHomeLeaderboard([]);
+    return [];
+  }
+
+  // اعرض البيانات المخبأة فورًا إن وجدت، ثم حدّثها من الشبكة.
+  const cachedCombined = [];
+  lessons.forEach((lesson) => {
+    const lessonId = String(lesson.lesson_id || '');
+    const cachedRows = readCachedLeaderboard(lessonId)?.rows || [];
+    cachedRows.forEach((row) => cachedCombined.push({ ...row, lesson_id: lessonId, lesson_name: lesson.lesson_name || '' }));
+  });
+  if (cachedCombined.length) renderHomeLeaderboard(rankHomeLeaderboardRows(cachedCombined));
+  else list.innerHTML = '<li class="leaderboard-empty">جارٍ تحميل النتائج…</li>';
+
+  const groups = await Promise.all(lessons.map(async (lesson) => {
+    const lessonId = String(lesson.lesson_id || '');
+    const rows = await fetchLessonLeaderboardRows(lessonId, forceRefresh);
+    return rows.map((row) => ({ ...row, lesson_id: lessonId, lesson_name: lesson.lesson_name || '' }));
+  }));
+  const ranked = rankHomeLeaderboardRows(groups.flat());
+  if (!$('#loginView')?.hidden) renderHomeLeaderboard(ranked);
+  return ranked;
+}
+
+function rankHomeLeaderboardRows(rows = []) {
+  const bestByStudent = new Map();
+  rows.forEach((row) => {
+    const key = homeLeaderboardStudentKey(row);
+    const current = bestByStudent.get(key);
+    const score = Number(row.score || 0);
+    const duration = Number(row.duration_seconds || 0);
+    const currentScore = Number(current?.score || 0);
+    const currentDuration = Number(current?.duration_seconds || 0);
+    if (!current || score > currentScore || (score === currentScore && duration < currentDuration)) {
+      bestByStudent.set(key, row);
+    }
+  });
+  return [...bestByStudent.values()].sort((a, b) => {
+    const scoreDiff = Number(b.score || 0) - Number(a.score || 0);
+    if (scoreDiff) return scoreDiff;
+    const timeDiff = Number(a.duration_seconds || 0) - Number(b.duration_seconds || 0);
+    if (timeDiff) return timeDiff;
+    return String(a.student_name || '').localeCompare(String(b.student_name || ''), 'ar');
+  }).slice(0, 10);
+}
+
 function leaderboardCacheKey(lessonId) {
   return `${LEADERBOARD_CACHE_PREFIX}${lessonId}`;
 }
@@ -943,7 +1025,7 @@ function applyContent(data, lessonId, fromCache = false) {
   state.usingCache = fromCache;
   initializeAppearance();
   renderLoginContent();
-  if (!$('#loginView').hidden) loadLeaderboard(lessonId);
+  if (!$('#loginView').hidden) loadHomeLeaderboard();
 }
 
 function setContentLoading() {
@@ -2682,7 +2764,7 @@ async function startApplication() {
   if (!canResume) {
     showView('loginView');
     applyGameModeAvailability();
-    loadLeaderboard(state.selectedLessonId).catch(() => {});
+    loadHomeLeaderboard().catch(() => {});
     beginInitialLoad().catch((error) => {
       setContentError(error.message || 'تعذر تحميل الدروس. تحقق من الإنترنت ثم حاول مجددًا.');
     });

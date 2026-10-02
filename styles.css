@@ -2482,3 +2482,61 @@ body:has(#lessonView:not([hidden])) .app-shell {
   .challenge-cover-card { min-height: 0; }
   .challenge-linked-lessons { font-size: .78rem; white-space: normal; }
 }
+
+
+/* =========================================================
+   1.0.19 — ملاحظات اختبار 1.0.18
+   ========================================================= */
+#loginView .leaderboard-name {
+  display: block;
+  min-width: 0;
+}
+#loginView .leaderboard-name strong {
+  font: inherit;
+  font-weight: 900;
+}
+#loginView .leaderboard-row-lesson {
+  color: #6d7f97;
+  font-size: .82em;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* إظهار الزمن في أفضل 10 على الجوال للدروس والتحديات. */
+@media (max-width: 680px) {
+  .lesson-leaderboard-result {
+    display: inline-flex !important;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .lesson-leaderboard-result small {
+    display: inline !important;
+    font-size: .66rem !important;
+    line-height: 1;
+  }
+  .lesson-leaderboard-result strong {
+    font-size: .75rem !important;
+  }
+  .lesson-page-leaderboard-list li {
+    grid-template-columns: 24px minmax(0,1fr) auto !important;
+    gap: 4px !important;
+  }
+}
+
+@media (max-width: 430px) {
+  #loginView .leaderboard-list li {
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    gap: 5px;
+    padding-inline: 5px;
+  }
+  #loginView .leaderboard-name {
+    font-size: .78rem;
+  }
+  #loginView .leaderboard-row-lesson {
+    font-size: .74em;
+  }
+  #loginView .leaderboard-score {
+    gap: 6px;
+    font-size: .76rem;
+  }
+}
