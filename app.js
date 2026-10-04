@@ -1,5 +1,5 @@
 'use strict';
-// الإصدار: 1.0.19
+// الإصدار: 1.0.20
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyfeSB3gvBHTfHuCwozfPG-GUflo6AmJmer8HJSUStmY_IdCutZWJdnHTsVfIfdpHfc/exec';
 const DEFAULT_LESSON_ID = 'PLANTS_01';
@@ -11,6 +11,7 @@ const RUN_RESUME_KEY = 'plants_active_lesson_run_v1';
 const VIEW_STORAGE_KEY = 'plants_current_view_v1';
 const LEADERBOARD_CACHE_PREFIX = 'plants_leaderboard_v1_';
 const LEADERBOARD_CACHE_TTL = 2 * 60 * 1000;
+const BOOTSTRAP_CACHE_TTL = 90 * 1000;
 const LESSON_LEADERBOARD_ROTATE_MS = 9000;
 const CHALLENGE_CACHE_KEY = 'scientific_memory_challenges_v1';
 const CHALLENGE_CACHE_TTL = 2 * 60 * 1000;
@@ -631,13 +632,22 @@ function cacheKey(lessonId) {
   return `${CACHE_PREFIX}${lessonId}`;
 }
 
-function readCachedContent(lessonId) {
+function readCachedContentEntry(lessonId) {
   try {
     const cached = JSON.parse(localStorage.getItem(cacheKey(lessonId)) || 'null');
-    return cached?.data ? cached.data : null;
+    return cached?.data ? cached : null;
   } catch (_) {
     return null;
   }
+}
+
+function readCachedContent(lessonId) {
+  return readCachedContentEntry(lessonId)?.data || null;
+}
+
+function isBootstrapCacheFresh(lessonId) {
+  const cached = readCachedContentEntry(lessonId);
+  return Boolean(cached?.saved_at) && Date.now() - Number(cached.saved_at || 0) < BOOTSTRAP_CACHE_TTL;
 }
 
 function saveCachedContent(lessonId, data) {
@@ -991,24 +1001,24 @@ function setupLessonLeaderboard(lessons = []) {
 async function prepareLessonRankings(lessons = []) {
   const board = $('#lessonLeaderboard');
   if (!board) return;
-  const eligible = [];
   const visibleLessons = lessons.filter((lesson) => String(lesson.lesson_id || ''));
 
-  for (const lesson of visibleLessons) {
-    if ($('#lessonView')?.hidden) return;
+  // اعرض أفضل 5 من الكاش مباشرة، ثم حدّث كل الدروس بالتوازي بدل الانتظار درسًا بعد درس.
+  visibleLessons.forEach((lesson) => {
     const lessonId = String(lesson.lesson_id || '');
     const cached = state.lessonLeaderboardRows.get(lessonId) || readCachedLeaderboard(lessonId)?.rows || null;
-    if (Array.isArray(cached)) {
-      updateLessonBestFive(lessonId, cached);
-      if (cached.length) eligible.push(lesson);
-    }
+    if (Array.isArray(cached)) updateLessonBestFive(lessonId, cached);
+  });
 
+  const results = await Promise.all(visibleLessons.map(async (lesson) => {
+    const lessonId = String(lesson.lesson_id || '');
     const rows = await fetchLessonLeaderboardRows(lessonId);
     updateLessonBestFive(lessonId, rows);
-    if (rows.length && !eligible.some((item) => String(item.lesson_id) === lessonId)) eligible.push(lesson);
-  }
+    return { lesson, rows };
+  }));
 
   if ($('#lessonView')?.hidden) return;
+  const eligible = results.filter((item) => item.rows.length).map((item) => item.lesson);
   state.lessonLeaderboardLessons = eligible;
   state.lessonLeaderboardIndex = 0;
   board.hidden = eligible.length === 0;
@@ -1044,6 +1054,13 @@ async function beginInitialLoad() {
   if (cached) applyContent(cached, lessonId, true);
   else setContentLoading();
 
+  // إذا كانت بيانات الدرس حديثة جدًا نستخدمها فورًا بلا طلب Bootstrap إضافي.
+  if (cached && isBootstrapCacheFresh(lessonId)) {
+    state.usingCache = false;
+    return cached;
+  }
+
+  if (state.loadPromise) return state.loadPromise;
   state.loadPromise = fetchBootstrap(lessonId)
     .then((data) => {
       saveCachedContent(lessonId, data);
@@ -2764,7 +2781,6 @@ async function startApplication() {
   if (!canResume) {
     showView('loginView');
     applyGameModeAvailability();
-    loadHomeLeaderboard().catch(() => {});
     beginInitialLoad().catch((error) => {
       setContentError(error.message || 'تعذر تحميل الدروس. تحقق من الإنترنت ثم حاول مجددًا.');
     });
@@ -2806,6 +2822,11 @@ async function startApplication() {
 
 startApplication();
 
+let bestFiveResizeRaf = 0;
 window.addEventListener('resize', () => {
-  document.querySelectorAll('.lesson-best5-names').forEach((target) => refreshLessonBestFiveMotion(target));
+  if (bestFiveResizeRaf) return;
+  bestFiveResizeRaf = window.requestAnimationFrame(() => {
+    bestFiveResizeRaf = 0;
+    document.querySelectorAll('.lesson-best5-names').forEach((target) => refreshLessonBestFiveMotion(target));
+  });
 });
