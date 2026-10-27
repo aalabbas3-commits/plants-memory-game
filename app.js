@@ -1,9 +1,9 @@
 'use strict';
-// الإصدار: 1.0.21
+// الإصدار: 1.0.20
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbyfeSB3gvBHTfHuCwozfPG-GUflo6AmJmer8HJSUStmY_IdCutZWJdnHTsVfIfdpHfc/exec';
 const DEFAULT_LESSON_ID = 'PLANTS_01';
-const CACHE_PREFIX = 'plants_bootstrap_v5_';
+const CACHE_PREFIX = 'plants_bootstrap_v4_';
 const PLAYER_STORAGE_KEY = 'plants_player';
 const DEVICE_STORAGE_KEY = 'plants_device_id';
 const RUN_STORAGE_PREFIX = 'plants_lesson_run_v1_';
@@ -2029,26 +2029,13 @@ function startQuestionTimer(seconds) {
   }, 1000);
 }
 
-function pickBalancedQuestion(candidates = []) {
-  if (!candidates.length) return null;
-  const ranked = candidates.map((question) => ({
-    question,
-    usage: Math.max(0, Number(question.usage_count || 0))
-  })).sort((a, b) => a.usage - b.usage);
-  const minimum = ranked[0]?.usage || 0;
-  // نعطي الأولوية للأقل استخدامًا، مع إبقاء قدر من العشوائية بين الأسئلة المتقاربة.
-  let pool = ranked.filter((item) => item.usage <= minimum + 1).slice(0, 6);
-  if (!pool.length) pool = ranked.slice(0, Math.min(4, ranked.length));
-  return shuffle(pool.map((item) => item.question))[0] || ranked[0].question;
-}
-
 function openQuestionForMatch(card) {
   const candidates = questionsForMatch(card);
   if (!candidates.length) {
     finishMatchedPair();
     return;
   }
-  const question = pickBalancedQuestion(candidates);
+  const question = shuffle(candidates)[0];
   state.game.currentQuestion = question;
   state.group.questionTeamIndex = state.group.activeTeamIndex;
   state.group.questionAttempt = 1;
